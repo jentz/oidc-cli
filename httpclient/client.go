@@ -62,7 +62,7 @@ func NewClient(cfg *Config) *Client {
 }
 
 // Do performs an HTTP request and handles response processing
-func (c *Client) Do(ctx context.Context, method, url string, body io.Reader, headers map[string]string) (*Response, error) {
+func (c *Client) Do(ctx context.Context, method, url string, body io.Reader, headers map[string]string) (resp *Response, err error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -73,26 +73,26 @@ func (c *Client) Do(ctx context.Context, method, url string, body io.Reader, hea
 		req.Header.Set(key, value)
 	}
 
-	resp, err := c.client.Do(req)
+	httpResp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
 	defer func() {
-		closeErr := resp.Body.Close()
+		closeErr := httpResp.Body.Close()
 		if err == nil && closeErr != nil {
 			err = fmt.Errorf("error closing response body: %w", closeErr)
 		}
 	}()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read response body: %w", err)
 	}
 
 	return &Response{
-		StatusCode: resp.StatusCode,
-		Headers:    resp.Header,
+		StatusCode: httpResp.StatusCode,
+		Headers:    httpResp.Header,
 		Body:       respBody,
 	}, err
 }
