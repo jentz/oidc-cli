@@ -5,12 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"text/template"
 	"time"
 
 	"github.com/jentz/oidc-cli/log"
