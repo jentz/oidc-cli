@@ -56,7 +56,11 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config) (ru
 	// Read token from stdin if token equals '-'
 	if flowConf.Token == "-" {
 		scanner := bufio.NewScanner(os.Stdin)
-		scanner.Scan()
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				return nil, buf.String(), err
+			}
+		}
 		flowConf.Token = scanner.Text()
 	}
 
