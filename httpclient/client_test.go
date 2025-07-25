@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -393,4 +394,61 @@ func TestDo_ContextCanceled(t *testing.T) {
 	if err == nil {
 		t.Error("Expected context cancellation error, got nil")
 	}
+}
+
+// Test that verifies response body close error propagation works correctly
+func TestDo_ResponseBodyCloseError(t *testing.T) {
+	// Create a test server that returns a response with a body that fails to close
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("test response"))
+	}))
+	defer ts.Close()
+
+	// Create a custom transport that returns a response with a body that fails to close
+	client := NewClient(&Config{
+		Transport: &failingBodyCloseTransport{},
+	})
+
+	_, err := client.Do(context.Background(), http.MethodGet, ts.URL, nil, nil)
+	
+	// Verify that the close error is properly propagated
+	if err == nil {
+		t.Error("Expected error from failing to close response body, but got nil")
+	} else if !strings.Contains(err.Error(), "error closing response body") {
+		t.Errorf("Expected error about closing response body, got: %v", err)
+	}
+}
+
+// failingBodyCloseTransport is a custom transport that returns responses with bodies that fail to close
+type failingBodyCloseTransport struct{}
+
+func (t *failingBodyCloseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Create a response with a failing body closer
+	resp := &http.Response{
+		StatusCode: 200,
+		Header:     make(http.Header),
+		Body:       &failingCloseReadCloser{data: []byte("test response")},
+		Request:    req,
+	}
+	return resp, nil
+}
+
+// failingCloseReadCloser implements io.ReadCloser but Close() always returns an error
+type failingCloseReadCloser struct {
+	data   []byte
+	offset int
+}
+
+func (f *failingCloseReadCloser) Read(p []byte) (n int, err error) {
+	if f.offset >= len(f.data) {
+		return 0, io.EOF
+	}
+	n = copy(p, f.data[f.offset:])
+	f.offset += n
+	return n, nil
+}
+
+func (f *failingCloseReadCloser) Close() error {
+	return errors.New("simulated close error")
 }
