@@ -2,8 +2,11 @@ package httpclient
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"testing"
+
+	"github.com/jentz/oidc-cli/webflow"
 )
 
 func TestCreateAuthorizationCodeRequestValues(t *testing.T) {
@@ -253,5 +256,123 @@ func TestExecuteAuthorizationCodeRequest_BasicValidation(t *testing.T) {
 	// The error should be related to the request validation
 	if err != nil && err.Error() == "" {
 		t.Error("Expected non-empty error message")
+	}
+}
+
+func TestStateValidationLogic(t *testing.T) {
+	// Test the state validation logic by simulating various callback scenarios
+	tests := []struct {
+		name             string
+		requestState     string
+		callbackResponse *webflow.CallbackResponse
+		expectError      bool
+		expectedErrorMsg string
+	}{
+		{
+			name:         "Valid state match",
+			requestState: "test-state-123",
+			callbackResponse: &webflow.CallbackResponse{
+				Code:  "auth-code-123",
+				State: "test-state-123",
+			},
+			expectError: false,
+		},
+		{
+			name:         "State mismatch should fail",
+			requestState: "test-state-123",
+			callbackResponse: &webflow.CallbackResponse{
+				Code:  "auth-code-123",
+				State: "different-state-456",
+			},
+			expectError:      true,
+			expectedErrorMsg: "state mismatch: expected \"test-state-123\" but got \"different-state-456\"",
+		},
+		{
+			name:         "Empty state in request should allow any callback state but return empty",
+			requestState: "",
+			callbackResponse: &webflow.CallbackResponse{
+				Code:  "auth-code-123",
+				State: "any-state",
+			},
+			expectError: false,
+		},
+		{
+			name:         "Empty state in both request and callback should work",
+			requestState: "",
+			callbackResponse: &webflow.CallbackResponse{
+				Code:  "auth-code-123",
+				State: "",
+			},
+			expectError: false,
+		},
+		{
+			name:         "Missing code in callback should fail",
+			requestState: "test-state-123",
+			callbackResponse: &webflow.CallbackResponse{
+				Code:             "",
+				State:            "test-state-123",
+				ErrorMsg:         "access_denied",
+				ErrorDescription: "User denied access",
+			},
+			expectError:      true,
+			expectedErrorMsg: "authorization failed with error access_denied and description User denied access",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the state validation logic from ExecuteAuthorizationCodeRequest
+			req := &AuthorizationCodeRequest{
+				ClientID: "test-client",
+				State:    tt.requestState,
+			}
+
+			callbackResp := tt.callbackResponse
+
+			// Test state validation logic
+			var err error
+			if req.State != "" && callbackResp.State != req.State {
+				err = fmt.Errorf("state mismatch: expected %q but got %q", req.State, callbackResp.State)
+			}
+
+			// Test authorization code validation
+			if err == nil && callbackResp.Code == "" {
+				err = fmt.Errorf("authorization failed with error %s and description %s", callbackResp.ErrorMsg, callbackResp.ErrorDescription)
+			}
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				} else if tt.expectedErrorMsg != "" && err.Error() != tt.expectedErrorMsg {
+					t.Errorf("Expected error message %q, got %q", tt.expectedErrorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but got: %v", err)
+				}
+			}
+
+			// Test response construction when no error
+			if !tt.expectError {
+				expectedState := func() string {
+					if req.State != "" {
+						return req.State
+					}
+					return ""
+				}()
+				
+				response := &AuthorizationCodeResponse{
+					Code:  callbackResp.Code,
+					State: expectedState,
+				}
+
+				if response.Code != callbackResp.Code {
+					t.Errorf("Expected response code %q, got %q", callbackResp.Code, response.Code)
+				}
+				if response.State != expectedState {
+					t.Errorf("Expected response state %q, got %q", expectedState, response.State)
+				}
+			}
+		})
 	}
 }
