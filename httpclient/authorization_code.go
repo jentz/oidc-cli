@@ -153,12 +153,17 @@ func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint s
 		return nil, fmt.Errorf("callback failed: %w", err)
 	}
 
+	// Validate state parameter to prevent CSRF attacks
+	if req.State != "" && callbackResp.State != req.State {
+		return nil, fmt.Errorf("state mismatch: expected %q but got %q", req.State, callbackResp.State)
+	}
+
 	if callbackResp.Code == "" {
 		return nil, fmt.Errorf("authorization failed with error %s and description %s", callbackResp.ErrorMsg, callbackResp.ErrorDescription)
 	}
 
 	return &AuthorizationCodeResponse{
 		Code:  callbackResp.Code,
-		State: req.State, // TODO: Return the state from the callback response
+		State: callbackResp.State,
 	}, nil
 }

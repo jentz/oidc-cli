@@ -171,6 +171,15 @@ func TestCallbackServerHandleCallback(t *testing.T) {
 			wantResponse: &CallbackResponse{Code: "abc123"},
 		},
 		{
+			name:         "Success callback with state",
+			query:        "code=abc123&state=test-state-123",
+			successTmpl:  template.Must(template.New("success").Parse("<p>Success: {{.Code}}</p>")),
+			errorTmpl:    template.Must(template.New("error").Parse("<p>Error: {{.ErrorMsg}} - {{.ErrorDescription}}</p>")),
+			wantStatus:   http.StatusOK,
+			wantBody:     "<p>Success: abc123</p>",
+			wantResponse: &CallbackResponse{Code: "abc123", State: "test-state-123"},
+		},
+		{
 			name:         "Error callback",
 			query:        "error=invalid_grant&error_description=Bad+request",
 			successTmpl:  template.Must(template.New("success").Parse("<p>Success: {{.Code}}</p>")),
@@ -231,6 +240,7 @@ func TestCallbackServerHandleCallback(t *testing.T) {
 				select {
 				case got := <-s.response:
 					if got.Code != tt.wantResponse.Code ||
+						got.State != tt.wantResponse.State ||
 						got.ErrorMsg != tt.wantResponse.ErrorMsg ||
 						got.ErrorDescription != tt.wantResponse.ErrorDescription {
 						t.Errorf("expected response %v, got %v", tt.wantResponse, got)

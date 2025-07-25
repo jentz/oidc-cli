@@ -31,6 +31,7 @@ type CallbackServer struct {
 
 type CallbackResponse struct {
 	Code             string
+	State            string
 	ErrorMsg         string
 	ErrorDescription string
 }
@@ -112,6 +113,7 @@ func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) 
 	var tmpl *template.Template
 
 	resp.Code = r.URL.Query().Get("code")
+	resp.State = r.URL.Query().Get("state")
 	resp.ErrorMsg = r.URL.Query().Get("error")
 	resp.ErrorDescription = r.URL.Query().Get("error_description")
 
