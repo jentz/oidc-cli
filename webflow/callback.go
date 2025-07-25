@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"text/template"
+	"html/template"
 	"time"
 
 	"github.com/jentz/oidc-cli/log"
