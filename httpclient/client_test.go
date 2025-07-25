@@ -3,7 +3,7 @@ package httpclient
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -450,5 +450,5 @@ func (f *failingCloseReadCloser) Read(p []byte) (n int, err error) {
 }
 
 func (f *failingCloseReadCloser) Close() error {
-	return fmt.Errorf("simulated close error")
+	return errors.New("simulated close error")
 }
