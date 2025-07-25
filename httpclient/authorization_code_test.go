@@ -288,7 +288,7 @@ func TestStateValidationLogic(t *testing.T) {
 			expectedErrorMsg: "state mismatch: expected \"test-state-123\" but got \"different-state-456\"",
 		},
 		{
-			name:         "Empty state in request should allow any callback state",
+			name:         "Empty state in request should allow any callback state but return empty",
 			requestState: "",
 			callbackResponse: &webflow.CallbackResponse{
 				Code:  "auth-code-123",
@@ -354,16 +354,23 @@ func TestStateValidationLogic(t *testing.T) {
 
 			// Test response construction when no error
 			if !tt.expectError {
+				expectedState := func() string {
+					if req.State != "" {
+						return req.State
+					}
+					return ""
+				}()
+				
 				response := &AuthorizationCodeResponse{
 					Code:  callbackResp.Code,
-					State: callbackResp.State,
+					State: expectedState,
 				}
 
 				if response.Code != callbackResp.Code {
 					t.Errorf("Expected response code %q, got %q", callbackResp.Code, response.Code)
 				}
-				if response.State != callbackResp.State {
-					t.Errorf("Expected response state %q, got %q", callbackResp.State, response.State)
+				if response.State != expectedState {
+					t.Errorf("Expected response state %q, got %q", expectedState, response.State)
 				}
 			}
 		})

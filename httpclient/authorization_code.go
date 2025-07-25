@@ -163,7 +163,12 @@ func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint s
 	}
 
 	return &AuthorizationCodeResponse{
-		Code:  callbackResp.Code,
-		State: callbackResp.State,
+		Code: callbackResp.Code,
+		State: func() string {
+			if req.State != "" {
+				return req.State
+			}
+			return ""
+		}(),
 	}, nil
 }
