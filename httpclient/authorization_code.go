@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/jentz/oidc-cli/log"
-	"github.com/jentz/oidc-cli/webflow"
 )
 
 type AuthorizationCodeRequest struct {
@@ -106,69 +103,36 @@ func CreateAuthorizationCodeRequestURL(endpoint string, values *url.Values) (str
 
 // ExecuteAuthorizationCodeRequest executes the authorization code request and returns the auth code response.
 func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint string, callback string, req *AuthorizationCodeRequest) (*AuthorizationCodeResponse, error) {
-	callbackServer, err := webflow.NewCallbackServer(callback)
+	// Start the callback server
+	server, err := c.authDeps.ServerManager.StartServer(ctx, callback)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create callback server: %w", err)
+		return nil, err // Error already wrapped by ServerManager
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	serverErrChan := make(chan error, 1)
-	go func() {
-		if err := callbackServer.Start(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			serverErrChan <- err
-		}
-	}()
-
-	// Give the server a moment to start or fail
-	select {
-	case err := <-serverErrChan:
-		return nil, fmt.Errorf("callback server failed to start: %w", err)
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-time.After(100 * time.Millisecond):
-		// Server started successfully
-	}
-
-	requestValues, err := CreateAuthorizationCodeRequestValues(req)
+	// Build the authorization URL
+	requestURL, err := c.authDeps.URLBuilder.BuildAuthorizationURL(endpoint, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create authorization request values: %w", err)
-	}
-
-	requestURL, err := CreateAuthorizationCodeRequestURL(endpoint, requestValues)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create authorization request URL: %w", err)
+		return nil, err // Error already wrapped by URLBuilder
 	}
 	log.Printf("authorization request: %s\n", requestURL)
 
-	browser := webflow.NewBrowser()
-	err = browser.Open(requestURL)
+	// Open the URL in the browser
+	err = c.authDeps.BrowserLauncher.OpenURL(requestURL)
 	if err != nil {
 		log.Errorf("unable to open browser because %v, visit %s to continue\n", err, requestURL)
 	}
 
-	callbackResp, err := callbackServer.WaitForCallback(ctx)
+	// Wait for the callback response
+	callbackResp, err := c.authDeps.ServerManager.WaitForCallback(ctx, server)
 	if err != nil {
-		return nil, fmt.Errorf("callback failed: %w", err)
+		return nil, err // Error already wrapped by ServerManager
 	}
 
-	// Validate state parameter to prevent CSRF attacks
-	if req.State != "" && callbackResp.State != req.State {
-		return nil, fmt.Errorf("state mismatch: expected %q but got %q", req.State, callbackResp.State)
+	// Validate and transform the response
+	authResp, err := c.authDeps.ResponseValidator.ValidateResponse(req, callbackResp)
+	if err != nil {
+		return nil, err // Error already wrapped by ResponseValidator
 	}
 
-	if callbackResp.Code == "" {
-		return nil, fmt.Errorf("authorization failed with error %s and description %s", callbackResp.ErrorMsg, callbackResp.ErrorDescription)
-	}
-
-	return &AuthorizationCodeResponse{
-		Code: callbackResp.Code,
-		State: func() string {
-			if req.State != "" {
-				return req.State
-			}
-			return ""
-		}(),
-	}, nil
+	return authResp, nil
 }

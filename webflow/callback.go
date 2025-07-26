@@ -5,10 +5,10 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"net/url"
-	"html/template"
 	"time"
 
 	"github.com/jentz/oidc-cli/log"

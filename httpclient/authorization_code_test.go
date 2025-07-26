@@ -236,8 +236,6 @@ func TestCreateAuthorizationCodeRequestURL(t *testing.T) {
 	}
 }
 
-// TODO: ExecuteAuthorizationCodeRequest needs to be broken down
-// and made more testable with mocks to get further
 func TestExecuteAuthorizationCodeRequest_BasicValidation(t *testing.T) {
 	// Test basic parameter validation without actually executing the flow
 	client := NewClient(nil)
@@ -360,7 +358,7 @@ func TestStateValidationLogic(t *testing.T) {
 					}
 					return ""
 				}()
-				
+
 				response := &AuthorizationCodeResponse{
 					Code:  callbackResp.Code,
 					State: expectedState,
