@@ -411,7 +411,7 @@ func TestDo_ResponseBodyCloseError(t *testing.T) {
 	})
 
 	_, err := client.Do(context.Background(), http.MethodGet, ts.URL, nil, nil)
-	
+
 	// Verify that the close error is properly propagated
 	if err == nil {
 		t.Error("Expected error from failing to close response body, but got nil")

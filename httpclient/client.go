@@ -22,7 +22,8 @@ type Config struct {
 
 // Client is a wrapper around http.Client with utility methods
 type Client struct {
-	client *http.Client
+	client   *http.Client
+	authDeps *AuthFlowDependencies // Optional dependencies for authorization flows
 }
 
 // Response represents an HTTP response with convenience methods
@@ -58,6 +59,15 @@ func NewClient(cfg *Config) *Client {
 			Transport: transport,
 			Timeout:   cfg.Timeout,
 		},
+		authDeps: NewAuthFlowDependencies(), // Initialize with default dependencies
+	}
+}
+
+// SetAuthFlowDependencies sets custom dependencies for authorization flows.
+// This is primarily used for testing with mock implementations.
+func (c *Client) SetAuthFlowDependencies(deps *AuthFlowDependencies) {
+	if deps != nil {
+		c.authDeps = deps
 	}
 }
 
