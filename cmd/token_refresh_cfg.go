@@ -38,7 +38,12 @@ func parseTokenRefreshFlags(name string, args []string, oidcConf *oidc.Config) (
 	// Read refresh token from stdin if token equals '-'
 	if flowConf.RefreshToken == "-" {
 		scanner := bufio.NewScanner(os.Stdin)
-		scanner.Scan()
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				return nil, buf.String(), err
+			}
+			return nil, buf.String(), flag.ErrHelp // No input provided for refresh token
+		}
 		flowConf.RefreshToken = scanner.Text()
 	}
 

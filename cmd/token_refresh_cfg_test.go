@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"flag"
+	"os"
 	"reflect"
 	"testing"
 
@@ -122,5 +124,125 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				t.Errorf("output got empty, want error message")
 			}
 		})
+	}
+}
+
+func TestParseTokenRefreshFlagsStdin(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectError   bool
+		expectErrHelp bool
+		expectedToken string
+	}{
+		{
+			name:          "successful stdin read",
+			input:         "test-refresh-token\n",
+			expectError:   false,
+			expectedToken: "test-refresh-token",
+		},
+		{
+			name:          "empty input (EOF)",
+			input:         "",
+			expectError:   true,
+			expectErrHelp: true,
+		},
+		{
+			name:          "whitespace only input",
+			input:         "   \n",
+			expectError:   false,
+			expectedToken: "   ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Save original stdin
+			originalStdin := os.Stdin
+			defer func() { os.Stdin = originalStdin }()
+
+			// Create pipe to simulate stdin
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Fatalf("Failed to create pipe: %v", err)
+			}
+			os.Stdin = r
+
+			// Write test input to pipe
+			go func() {
+				defer func() { _ = w.Close() }()
+				if tt.input != "" {
+					_, _ = w.WriteString(tt.input)
+				}
+			}()
+
+			args := []string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--client-secret", "client-secret",
+				"--refresh-token", "-", // This triggers stdin reading
+			}
+
+			runner, output, err := parseTokenRefreshFlags("token_refresh", args, &oidc.Config{})
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if tt.expectErrHelp && err != flag.ErrHelp {
+					t.Errorf("expected flag.ErrHelp, got %v", err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if output != "" {
+				t.Errorf("output got %q, want empty", output)
+			}
+
+			f, ok := runner.(*oidc.TokenRefreshFlow)
+			if !ok {
+				t.Errorf("unexpected runner type: %T", runner)
+				return
+			}
+
+			if f.FlowConfig.RefreshToken != tt.expectedToken {
+				t.Errorf("RefreshToken got %q, want %q", f.FlowConfig.RefreshToken, tt.expectedToken)
+			}
+		})
+	}
+}
+
+func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
+	// Save original stdin
+	originalStdin := os.Stdin
+	defer func() { os.Stdin = originalStdin }()
+
+	// Test the EOF case (no input) - this should return flag.ErrHelp
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("Failed to create pipe: %v", err)
+	}
+	_ = w.Close() // Close write end immediately to simulate EOF
+	os.Stdin = r
+	defer func() { _ = r.Close() }()
+
+	args := []string{
+		"--issuer", "https://example.com",
+		"--client-id", "client-id",
+		"--client-secret", "client-secret",
+		"--refresh-token", "-", // This triggers stdin reading
+	}
+
+	_, _, err = parseTokenRefreshFlags("token_refresh", args, &oidc.Config{})
+	if err == nil {
+		t.Error("expected error from empty stdin, got nil")
+	}
+	if err != flag.ErrHelp {
+		t.Errorf("expected flag.ErrHelp for empty stdin, got %v", err)
 	}
 }
