@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 
 	"github.com/jentz/oidc-cli/httpclient"
@@ -59,7 +60,7 @@ func parseAuthorizationCodeFlags(name string, args []string, oidcConf *oidc.Conf
 
 	err = flags.Parse(args)
 	if err != nil {
-		return nil, buf.String(), flag.ErrHelp
+		return nil, buf.String(), err
 	}
 
 	// populate custom args
@@ -107,7 +108,7 @@ func parseAuthorizationCodeFlags(name string, args []string, oidcConf *oidc.Conf
 
 	for _, check := range invalidArgsChecks {
 		if check.condition {
-			return nil, check.message, flag.ErrHelp
+			return nil, check.message, errors.New("invalid arguments: " + check.message)
 		}
 	}
 

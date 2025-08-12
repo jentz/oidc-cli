@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 
 	"github.com/jentz/oidc-cli/oidc"
@@ -52,7 +53,7 @@ func parseClientCredentialsFlags(name string, args []string, oidcConf *oidc.Conf
 
 	for _, check := range invalidArgsChecks {
 		if check.condition {
-			return nil, check.message, flag.ErrHelp
+			return nil, check.message, errors.New("invalid arguments: " + check.message)
 		}
 	}
 
