@@ -39,8 +39,8 @@ func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log
 	})
 
 	if cmdIdx < 0 {
-		logger.Errorf("command \"%s\" not found\n\n", name)
-		flag.Usage()
+		logger.Errorf("error: command \"%s\" not found\n\n", name)
+		logger.Errorln("See 'oidc-cli --help' for usage.")
 		return ExitError
 	}
 
@@ -57,11 +57,12 @@ func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log
 
 	command, output, err := cmd.Configure(name, args, globalConf)
 	if errors.Is(err, flag.ErrHelp) {
-		logger.Errorf("error: %v\n", output)
+		logger.Outputln(output)
 		return ExitHelp
 	} else if err != nil {
-		logger.Errorln("got error:", err)
-		logger.Errorln("output:\n", output)
+		logger.Errorln("error:", err)
+		logger.Errorln()
+		logger.Errorf("See 'oidc-cli %s --help' for usage.\n", cmd.Name)
 		return ExitError
 	}
 

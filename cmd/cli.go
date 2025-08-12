@@ -26,13 +26,14 @@ func CLI(args []string, logOptions ...log.Option) int {
 		usage(logger, flagSet)
 	}
 
-	args, output, err := parseGlobalFlags(flagSet, &globalConf, args)
+	args, _, err := parseGlobalFlags(flagSet, &globalConf, args)
 	if errors.Is(err, flag.ErrHelp) {
 		flag.Usage()
 		return ExitHelp
 	} else if err != nil {
-		logger.Errorln("got error:", err)
-		logger.Errorln("output:\n", output)
+		logger.Errorln("error:", err)
+		logger.Errorln()
+		logger.Errorln("See 'oidc-cli --help' for usage.")
 		return ExitError
 	}
 
@@ -72,5 +73,5 @@ Usage:
 	}
 
 	logger.Outputln()
-	logger.Outputf("Run `oidc-cli <command> -h` to get help for a specific command\n\n")
+	logger.Outputf("Run `oidc-cli <command> --help` to get help for a specific command\n\n")
 }
