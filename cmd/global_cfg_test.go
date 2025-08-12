@@ -60,6 +60,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 				DiscoveryEndpoint: "",
 				ClientID:          "client-id",
 				ClientSecret:      "client-secret",
+				Verbose:           true,
 			},
 			[]string{},
 		},
@@ -85,7 +86,9 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oidcConf, remainingArgs, output, err := ParseGlobalFlags("global", tt.args)
+			var oidcConf oidc.Config
+			flagSet := configureGlobalFlags("global flags", &oidcConf)
+			remainingArgs, output, err := parseGlobalFlags(flagSet, &oidcConf, tt.args)
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -93,7 +96,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 				t.Errorf("output got %q, want empty", output)
 			}
 
-			gotConf := *oidcConf
+			gotConf := oidcConf
 			gotConf.Client = nil // Ignore client in comparison
 
 			if !reflect.DeepEqual(gotConf, tt.oidcConf) {

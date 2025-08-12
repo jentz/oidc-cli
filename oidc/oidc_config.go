@@ -20,6 +20,7 @@ type Config struct {
 	UserinfoEndpoint                   string
 	JWKSEndpoint                       string
 	SkipTLSVerify                      bool
+	Verbose                            bool
 	AuthMethod                         httpclient.AuthMethod
 	PrivateKeyFile                     string
 	PublicKeyFile                      string

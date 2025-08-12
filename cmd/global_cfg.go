@@ -9,35 +9,34 @@ import (
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func ParseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, remainingArgs []string, output string, err error) {
-	oidcConf = &oidc.Config{}
-
-	flags := flag.NewFlagSet(name, flag.ContinueOnError)
-	var buf bytes.Buffer
-	flags.SetOutput(&buf)
+func configureGlobalFlags(name string, oidcConf *oidc.Config) (flags *flag.FlagSet) {
+	flags = flag.NewFlagSet(name, flag.ContinueOnError)
 
 	flags.StringVar(&oidcConf.IssuerURL, "issuer", "", "set issuer url")
 	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", "", "override discovery url")
 	flags.StringVar(&oidcConf.ClientID, "client-id", "", "set client ID")
 	flags.StringVar(&oidcConf.ClientSecret, "client-secret", "", "set client secret")
 
-	var skipTLSVerify bool
-	flags.BoolVar(&skipTLSVerify, "skip-tls-verify", false, "skip TLS certificate verification")
+	flags.BoolVar(&oidcConf.SkipTLSVerify, "skip-tls-verify", false, "skip TLS certificate verification")
+	flags.BoolVar(&oidcConf.Verbose, "verbose", false, "enable verbose output")
 
-	var verbose bool
-	flags.BoolVar(&verbose, "verbose", false, "enable verbose output")
+	return flags
+}
+
+func parseGlobalFlags(flags *flag.FlagSet, oidcConf *oidc.Config, args []string) (remainingArgs []string, output string, err error) {
+	var buf bytes.Buffer
+	flags.SetOutput(&buf)
 
 	err = flags.Parse(args)
 	if err != nil {
-		return nil, flags.Args(), buf.String(), err
+		return flags.Args(), buf.String(), err
 	}
 
-	log.SetDefaultLogger(log.WithVerbose(verbose))
+	log.SetDefaultLogger(log.WithVerbose(oidcConf.Verbose))
 
-	oidcConf.SkipTLSVerify = skipTLSVerify // temporary compatibility
 	oidcConf.Client = httpclient.NewClient(&httpclient.Config{
-		SkipTLSVerify: skipTLSVerify,
+		SkipTLSVerify: oidcConf.SkipTLSVerify,
 	})
 
-	return oidcConf, flags.Args(), buf.String(), nil
+	return flags.Args(), buf.String(), nil
 }
