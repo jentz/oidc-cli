@@ -26,7 +26,10 @@ func TestCLI_HelpFlag(t *testing.T) {
 	if code != ExitHelp {
 		t.Errorf("expected ExitHelp, got %d", code)
 	}
-	if !strings.Contains(out.String(), "Usage ") {
+	if !strings.Contains(out.String(), "Commands:") {
+		t.Errorf("expected usage output, got: %s", out.String())
+	}
+	if !strings.Contains(out.String(), "Global flags:") {
 		t.Errorf("expected usage output, got: %s", out.String())
 	}
 }

@@ -85,7 +85,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oidcConf, remainingArgs, output, err := ParseGlobalFlags("global", tt.args)
+			oidcConf, _, remainingArgs, output, err := parseGlobalFlags("global", tt.args)
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}

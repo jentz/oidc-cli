@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 
@@ -17,13 +18,15 @@ const (
 // Optionally accepts a logger to allow test output capture.
 func CLI(args []string, logOptions ...log.Option) int {
 	logger := log.New(logOptions...)
+
+	globalConf, flagSet, args, _, err := parseGlobalFlags("global flags", args)
+
 	flag.Usage = func() {
-		usage(logger)
+		usage(logger, flagSet)
 	}
 
-	globalConf, args, output, err := ParseGlobalFlags("global flags", args)
 	if errors.Is(err, flag.ErrHelp) {
-		logger.Errorln(output)
+		flag.Usage()
 		return ExitHelp
 	} else if err != nil {
 		logger.Errorln("error:", err)
@@ -43,22 +46,29 @@ func CLI(args []string, logOptions ...log.Option) int {
 	return RunCommand(subCmd, subCmdArgs, globalConf, logger)
 }
 
-func usage(logger *log.Logger) {
-	intro := `oidc-cli: is a command-line OIDC client
+func usage(logger *log.Logger, flags ...*flag.FlagSet) {
+	intro := `oidc-cli: is a command-line OIDC and oAuth2 client
 
 Usage:
   oidc-cli [global-flags] <command> [command-flags]`
 
 	logger.Outputln(intro)
-	logger.Outputln("\nCommands:")
+	logger.Outputln()
+	logger.Outputln("Commands:")
 	for _, command := range commands {
 		logger.Outputf("  %-18s: %s\n", command.Name, command.Help)
 	}
 
-	logger.Outputln("\nFlags:")
-	// Prints a help string for each flag we defined earlier using
-	// flag.BoolVar (and related functions)
-	flag.PrintDefaults()
+	if len(flags) > 0 {
+		logger.Outputln()
+		logger.Outputln("Global flags:")
+		// Prints a help string for each flag we defined earlier using
+		// flag.StringVar (and related functions)
+		var buf bytes.Buffer
+		flags[0].SetOutput(&buf)
+		flags[0].PrintDefaults()
+		logger.Outputln(buf.String())
+	}
 
 	logger.Outputln()
 	logger.Outputf("Run `oidc-cli <command> --help` to get help for a specific command\n\n")
