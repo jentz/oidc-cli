@@ -21,10 +21,13 @@ func parseTokenRefreshFlags(name string, args []string, oidcConf *oidc.Config) (
 	flags.StringVar(&oidcConf.ClientID, "client-id", oidcConf.ClientID, "set client ID")
 	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret")
 	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.StringVar(&oidcConf.PrivateKeyFile, "private-key", "", "file to read private key from (eg. for DPoP)")
+	flags.StringVar(&oidcConf.PublicKeyFile, "public-key", "", "file to read public key from (eg. for DPoP)")
 
 	var flowConf oidc.TokenRefreshFlowConfig
 	flags.StringVar(&flowConf.RefreshToken, "refresh-token", "", "refresh token to be used for token refresh")
 	flags.StringVar(&flowConf.Scopes, "scopes", "", "set scopes as a space separated list")
+	flags.BoolVar(&flowConf.DPoP, "dpop", false, "use dpop-bound refresh tokens")
 
 	runner = &oidc.TokenRefreshFlow{
 		Config:     oidcConf,
@@ -59,6 +62,10 @@ func parseTokenRefreshFlags(name string, args []string, oidcConf *oidc.Config) (
 		{
 			flowConf.RefreshToken == "",
 			"refresh token is required",
+		},
+		{
+			flowConf.DPoP && (oidcConf.PrivateKeyFile == "" || oidcConf.PublicKeyFile == ""),
+			"private-key and public-key are required when using DPoP",
 		},
 	}
 

@@ -20,6 +20,8 @@ func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags 
 	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", "", "override discovery url")
 	flags.StringVar(&oidcConf.ClientID, "client-id", "", "set client ID")
 	flags.StringVar(&oidcConf.ClientSecret, "client-secret", "", "set client secret")
+	flags.StringVar(&oidcConf.PrivateKeyFile, "private-key", "", "file to read private key from (eg. for DPoP)")
+	flags.StringVar(&oidcConf.PublicKeyFile, "public-key", "", "file to read public key from (eg. for DPoP)")
 
 	var skipTLSVerify bool
 	flags.BoolVar(&skipTLSVerify, "skip-tls-verify", false, "skip TLS certificate verification")

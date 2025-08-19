@@ -37,6 +37,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 			oidc.TokenRefreshFlowConfig{
 				Scopes:       "openid profile email",
 				RefreshToken: "refresh-token",
+				DPoP:         false,
 			},
 		},
 		{
@@ -56,6 +57,32 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 			},
 			oidc.TokenRefreshFlowConfig{
 				RefreshToken: "refresh-token",
+				DPoP:         false,
+			},
+		},
+		{
+			"dpop with private and public certificate",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--client-secret", "client-secret",
+				"--dpop",
+				"--private-key", "path/to/private-key.pem",
+				"--public-key", "path/to/public-key.pem",
+				"--refresh-token", "refresh-token",
+			},
+			oidc.Config{
+				IssuerURL:             "https://example.com",
+				DiscoveryEndpoint:     "",
+				IntrospectionEndpoint: "",
+				ClientID:              "client-id",
+				ClientSecret:          "client-secret",
+				PrivateKeyFile:        "path/to/private-key.pem",
+				PublicKeyFile:         "path/to/public-key.pem",
+			},
+			oidc.TokenRefreshFlowConfig{
+				RefreshToken: "refresh-token",
+				DPoP:         true,
 			},
 		},
 	}
@@ -122,6 +149,28 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--help",
 			},
 			flag.ErrHelp.Error(),
+		},
+		{
+			"missing private-key and dpop",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--scopes", "openid profile email",
+				"--callback-uri", "http://localhost:8080/callback",
+				"--dpop",
+				"--public-key", "path/to/public-key.pem",
+			},
+		},
+		{
+			"missing public-key and dpop",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--scopes", "openid profile email",
+				"--callback-uri", "http://localhost:8080/callback",
+				"--dpop",
+				"--private-key", "path/to/private-key.pem",
+			},
 		},
 	}
 
