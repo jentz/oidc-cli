@@ -19,7 +19,8 @@ const (
 func CLI(args []string, logOptions ...log.Option) int {
 	logger := log.New(logOptions...)
 
-	globalConf, flagSet, args, _, err := parseGlobalFlags("global flags", args)
+	globalConf, flagSet, err := parseGlobalFlags("global flags", args)
+	args = flagSet.Args()
 
 	flag.Usage = func() {
 		usage(logger, flagSet)

@@ -9,7 +9,7 @@ import (
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags *flag.FlagSet, remainingArgs []string, output string, err error) {
+func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags *flag.FlagSet, err error) {
 	oidcConf = &oidc.Config{}
 
 	flags = flag.NewFlagSet(name, flag.ContinueOnError)
@@ -29,7 +29,7 @@ func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags 
 
 	err = flags.Parse(args)
 	if err != nil {
-		return nil, flags, flags.Args(), buf.String(), err
+		return nil, flags, err
 	}
 
 	log.SetDefaultLogger(log.WithVerbose(verbose))
@@ -39,5 +39,5 @@ func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags 
 		SkipTLSVerify: skipTLSVerify,
 	})
 
-	return oidcConf, flags, flags.Args(), buf.String(), nil
+	return oidcConf, flags, nil
 }
