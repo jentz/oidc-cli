@@ -25,8 +25,8 @@ func (c *TokenRefreshFlow) setupDPoPHeaders() (map[string]string, error) {
 	headers := make(map[string]string)
 	if c.FlowConfig.DPoP {
 		dpopProof, err := crypto.NewDPoPProof(
-			c.Config.PublicKey,
-			c.Config.PrivateKey,
+			c.Config.DPoPPublicKey,
+			c.Config.DPoPPrivateKey,
 			"POST",
 			c.Config.TokenEndpoint,
 		)

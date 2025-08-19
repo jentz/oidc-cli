@@ -67,8 +67,8 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 				"--dpop",
-				"--private-key", "path/to/private-key.pem",
-				"--public-key", "path/to/public-key.pem",
+				"--dpop-private-key", "path/to/private-key.pem",
+				"--dpop-public-key", "path/to/public-key.pem",
 				"--refresh-token", "refresh-token",
 			},
 			oidc.Config{
@@ -77,8 +77,8 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				IntrospectionEndpoint: "",
 				ClientID:              "client-id",
 				ClientSecret:          "client-secret",
-				PrivateKeyFile:        "path/to/private-key.pem",
-				PublicKeyFile:         "path/to/public-key.pem",
+				DPoPPrivateKeyFile:    "path/to/private-key.pem",
+				DPoPPublicKeyFile:     "path/to/public-key.pem",
 			},
 			oidc.TokenRefreshFlowConfig{
 				RefreshToken: "refresh-token",
@@ -158,7 +158,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--scopes", "openid profile email",
 				"--callback-uri", "http://localhost:8080/callback",
 				"--dpop",
-				"--public-key", "path/to/public-key.pem",
+				"--dpop-public-key", "path/to/public-key.pem",
 			},
 		},
 		{
@@ -169,7 +169,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--scopes", "openid profile email",
 				"--callback-uri", "http://localhost:8080/callback",
 				"--dpop",
-				"--private-key", "path/to/private-key.pem",
+				"--dpop-private-key", "path/to/private-key.pem",
 			},
 		},
 	}
