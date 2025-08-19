@@ -38,7 +38,7 @@ func (m *DefaultCallbackServerManager) StartServer(ctx context.Context, callback
 
 	serverErrChan := make(chan error, 1)
 	go func() {
-		if err := callbackServer.Start(startupCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := callbackServer.Start(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErrChan <- err
 		}
 	}()
