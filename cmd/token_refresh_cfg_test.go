@@ -156,10 +156,11 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
 				"--scopes", "openid profile email",
-				"--callback-uri", "http://localhost:8080/callback",
+				"--refresh-token", "refresh-token",
 				"--dpop",
 				"--dpop-public-key", "path/to/public-key.pem",
 			},
+			"invalid arguments: both dpop-private-key and dpop-public-key are required when using DPoP",
 		},
 		{
 			"missing public-key and dpop",
@@ -167,10 +168,11 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
 				"--scopes", "openid profile email",
-				"--callback-uri", "http://localhost:8080/callback",
+				"--refresh-token", "refresh-token",
 				"--dpop",
 				"--dpop-private-key", "path/to/private-key.pem",
 			},
+			"invalid arguments: both dpop-private-key and dpop-public-key are required when using DPoP",
 		},
 	}
 
