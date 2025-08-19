@@ -37,6 +37,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 			oidc.TokenRefreshFlowConfig{
 				Scopes:       "openid profile email",
 				RefreshToken: "refresh-token",
+				DPoP:         false,
 			},
 		},
 		{
@@ -56,6 +57,32 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 			},
 			oidc.TokenRefreshFlowConfig{
 				RefreshToken: "refresh-token",
+				DPoP:         false,
+			},
+		},
+		{
+			"dpop with private and public certificate",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--client-secret", "client-secret",
+				"--dpop",
+				"--dpop-private-key", "path/to/private-key.pem",
+				"--dpop-public-key", "path/to/public-key.pem",
+				"--refresh-token", "refresh-token",
+			},
+			oidc.Config{
+				IssuerURL:             "https://example.com",
+				DiscoveryEndpoint:     "",
+				IntrospectionEndpoint: "",
+				ClientID:              "client-id",
+				ClientSecret:          "client-secret",
+				DPoPPrivateKeyFile:    "path/to/private-key.pem",
+				DPoPPublicKeyFile:     "path/to/public-key.pem",
+			},
+			oidc.TokenRefreshFlowConfig{
+				RefreshToken: "refresh-token",
+				DPoP:         true,
 			},
 		},
 	}
@@ -122,6 +149,30 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--help",
 			},
 			flag.ErrHelp.Error(),
+		},
+		{
+			"missing private-key and dpop",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--scopes", "openid profile email",
+				"--refresh-token", "refresh-token",
+				"--dpop",
+				"--dpop-public-key", "path/to/public-key.pem",
+			},
+			"invalid arguments: both dpop-private-key and dpop-public-key are required when using DPoP",
+		},
+		{
+			"missing public-key and dpop",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--scopes", "openid profile email",
+				"--refresh-token", "refresh-token",
+				"--dpop",
+				"--dpop-private-key", "path/to/private-key.pem",
+			},
+			"invalid arguments: both dpop-private-key and dpop-public-key are required when using DPoP",
 		},
 	}
 

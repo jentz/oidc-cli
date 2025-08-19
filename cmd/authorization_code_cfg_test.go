@@ -38,8 +38,8 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				"--pkce",
 				"--par",
 				"--dpop",
-				"--private-key", "path/to/private-key.pem",
-				"--public-key", "path/to/public-key.pem",
+				"--dpop-private-key", "path/to/private-key.pem",
+				"--dpop-public-key", "path/to/public-key.pem",
 			},
 			oidc.Config{
 				IssuerURL:             "https://example.com",
@@ -49,8 +49,8 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				ClientID:              "client-id",
 				ClientSecret:          "client-secret",
 				SkipTLSVerify:         true,
-				PrivateKeyFile:        "path/to/private-key.pem",
-				PublicKeyFile:         "path/to/public-key.pem",
+				DPoPPrivateKeyFile:    "path/to/private-key.pem",
+				DPoPPublicKeyFile:     "path/to/public-key.pem",
 			},
 			oidc.AuthorizationCodeFlowConfig{
 				Scopes:      "openid profile email",
@@ -200,8 +200,8 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				"--client-secret", "client-secret",
 				"--scopes", "openid profile email",
 				"--dpop",
-				"--private-key", "path/to/private-key.pem",
-				"--public-key", "path/to/public-key.pem",
+				"--dpop-private-key", "path/to/private-key.pem",
+				"--dpop-public-key", "path/to/public-key.pem",
 			},
 			oidc.Config{
 				IssuerURL:             "https://example.com",
@@ -210,8 +210,8 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				TokenEndpoint:         "",
 				ClientID:              "client-id",
 				ClientSecret:          "client-secret",
-				PrivateKeyFile:        "path/to/private-key.pem",
-				PublicKeyFile:         "path/to/public-key.pem",
+				DPoPPrivateKeyFile:    "path/to/private-key.pem",
+				DPoPPublicKeyFile:     "path/to/public-key.pem",
 			},
 			oidc.AuthorizationCodeFlowConfig{
 				Scopes:      "openid profile email",
@@ -303,7 +303,7 @@ func TestParseAuthorizationCodeFlagsError(t *testing.T) {
 				"--scopes", "openid profile email",
 				"--callback-uri", "http://localhost:8080/callback",
 				"--dpop",
-				"--public-key", "path/to/public-key.pem",
+				"--dpop-public-key", "path/to/public-key.pem",
 			},
 		},
 		{
@@ -314,7 +314,7 @@ func TestParseAuthorizationCodeFlagsError(t *testing.T) {
 				"--scopes", "openid profile email",
 				"--callback-uri", "http://localhost:8080/callback",
 				"--dpop",
-				"--private-key", "path/to/private-key.pem",
+				"--dpop-private-key", "path/to/private-key.pem",
 			},
 		},
 	}

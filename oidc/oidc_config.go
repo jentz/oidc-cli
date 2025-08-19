@@ -21,10 +21,10 @@ type Config struct {
 	JWKSEndpoint                       string
 	SkipTLSVerify                      bool
 	AuthMethod                         httpclient.AuthMethod
-	PrivateKeyFile                     string
-	PublicKeyFile                      string
-	PrivateKey                         any
-	PublicKey                          any
+	DPoPPrivateKeyFile                 string
+	DPoPPublicKeyFile                  string
+	DPoPPrivateKey                     any
+	DPoPPublicKey                      any
 	Client                             *httpclient.Client
 }
 
@@ -77,24 +77,24 @@ func (c *Config) DiscoverEndpoints(ctx context.Context) error {
 
 func (c *Config) ReadKeyFiles() error {
 	// Parse the private key if provided
-	if c.PrivateKeyFile != "" {
-		pem, err := crypto.ReadPEMBlockFromFile(c.PrivateKeyFile)
+	if c.DPoPPrivateKeyFile != "" {
+		pem, err := crypto.ReadPEMBlockFromFile(c.DPoPPrivateKeyFile)
 		if err != nil {
 			return fmt.Errorf("could not read private key file: %w", err)
 		}
-		c.PrivateKey, err = crypto.ParsePrivateKeyPEMBlock(pem)
+		c.DPoPPrivateKey, err = crypto.ParsePrivateKeyPEMBlock(pem)
 		if err != nil {
 			return fmt.Errorf("could not parse private key: %w", err)
 		}
 	}
 
 	// Parse the public key if provided
-	if c.PublicKeyFile != "" {
-		pem, err := crypto.ReadPEMBlockFromFile(c.PublicKeyFile)
+	if c.DPoPPublicKeyFile != "" {
+		pem, err := crypto.ReadPEMBlockFromFile(c.DPoPPublicKeyFile)
 		if err != nil {
 			return fmt.Errorf("failed to read public key file: %v", err)
 		}
-		c.PublicKey, err = crypto.ParsePublicKeyPEMBlock(pem)
+		c.DPoPPublicKey, err = crypto.ParsePublicKeyPEMBlock(pem)
 		if err != nil {
 			return fmt.Errorf("failed to parse public key: %v", err)
 		}
