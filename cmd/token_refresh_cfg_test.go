@@ -85,8 +85,9 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 
 func TestParseTokenRefreshFlagsError(t *testing.T) {
 	var tests = []struct {
-		name string
-		args []string
+		name          string
+		args          []string
+		expectedError string
 	}{
 		{
 			"missing issuer",
@@ -94,6 +95,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 			},
+			"invalid arguments: issuer is required",
 		},
 		{
 			"missing refresh token",
@@ -102,6 +104,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 			},
+			"invalid arguments: refresh token is required",
 		},
 		{
 			"undefined argument provided",
@@ -111,6 +114,14 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 				"--undefined-argument", "undefined-argument",
 				"--refresh-token", "refresh-token",
 			},
+			"flag provided but not defined: -undefined-argument",
+		},
+		{
+			"help flag",
+			[]string{
+				"--help",
+			},
+			flag.ErrHelp.Error(),
 		},
 	}
 
@@ -123,6 +134,9 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 			if output == "" {
 				t.Errorf("output got empty, want error message")
 			}
+			if err != nil && err.Error() != tt.expectedError {
+				t.Errorf("err got %v, want %v", err.Error(), tt.expectedError)
+			}
 		})
 	}
 }
@@ -132,7 +146,6 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 		name          string
 		input         string
 		expectError   bool
-		expectErrHelp bool
 		expectedToken string
 	}{
 		{
@@ -142,10 +155,9 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 			expectedToken: "test-refresh-token",
 		},
 		{
-			name:          "empty input (EOF)",
-			input:         "",
-			expectError:   true,
-			expectErrHelp: true,
+			name:        "empty input (EOF)",
+			input:       "",
+			expectError: true,
 		},
 		{
 			name:          "whitespace only input",
@@ -189,9 +201,6 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 				if err == nil {
 					t.Errorf("expected error, got nil")
 				}
-				if tt.expectErrHelp && err != flag.ErrHelp {
-					t.Errorf("expected flag.ErrHelp, got %v", err)
-				}
 				return
 			}
 
@@ -222,6 +231,8 @@ func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
 	originalStdin := os.Stdin
 	defer func() { os.Stdin = originalStdin }()
 
+	expectedError := "no refresh token provided on stdin"
+
 	// Test the EOF case (no input) - this should return flag.ErrHelp
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -242,7 +253,7 @@ func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
 	if err == nil {
 		t.Error("expected error from empty stdin, got nil")
 	}
-	if err != flag.ErrHelp {
-		t.Errorf("expected flag.ErrHelp for empty stdin, got %v", err)
+	if err.Error() != expectedError {
+		t.Errorf("expected error message %v, got %v", expectedError, err)
 	}
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"os"
 
@@ -42,7 +43,7 @@ func parseTokenRefreshFlags(name string, args []string, oidcConf *oidc.Config) (
 			if err := scanner.Err(); err != nil {
 				return nil, buf.String(), err
 			}
-			return nil, buf.String(), flag.ErrHelp // No input provided for refresh token
+			return nil, buf.String(), errors.New("no refresh token provided on stdin")
 		}
 		flowConf.RefreshToken = scanner.Text()
 	}
@@ -63,7 +64,7 @@ func parseTokenRefreshFlags(name string, args []string, oidcConf *oidc.Config) (
 
 	for _, check := range invalidArgsChecks {
 		if check.condition {
-			return nil, check.message, flag.ErrHelp
+			return nil, check.message, errors.New("invalid arguments: " + check.message)
 		}
 	}
 

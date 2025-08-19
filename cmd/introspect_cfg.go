@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"os"
 
@@ -88,7 +89,7 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config) (ru
 
 	for _, check := range invalidArgsChecks {
 		if check.condition {
-			return nil, check.message, flag.ErrHelp
+			return nil, check.message, errors.New("invalid arguments: " + check.message)
 		}
 	}
 
