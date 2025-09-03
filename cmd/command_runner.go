@@ -28,7 +28,8 @@ var commands = []Command{
 	{Name: "authorization_code", Help: "Use the Authorization Code flow to obtain tokens.", Configure: parseAuthorizationCodeFlags},
 	{Name: "client_credentials", Help: "Use the Client Credentials flow to obtain tokens.", Configure: parseClientCredentialsFlags},
 	{Name: "introspect", Help: "Validate a token and retrieve associated claims.", Configure: parseIntrospectFlags},
-	{Name: "token_refresh", Help: "Exchange a refresh token for new tokens.", Configure: parseTokenRefreshFlags},
+	{Name: "token_refresh", Help: "Use a refresh token to obtain new tokens.", Configure: parseTokenRefreshFlags},
+	{Name: "token_exchange", Help: "Exchange a token for different tokens.", Configure: parseTokenExchangeFlags},
 	{Name: "version", Help: "Display the current version of oidc-cli."},
 	{Name: "help", Help: "Show help for oidc-cli or a specific command."},
 }
