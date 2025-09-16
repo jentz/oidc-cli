@@ -19,7 +19,7 @@ func parseTokenExchangeFlags(name string, args []string, oidcConf *oidc.Config) 
 	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", oidcConf.DiscoveryEndpoint, "override discovery url")
 	flags.StringVar(&oidcConf.IntrospectionEndpoint, "introspection-url", "", "override introspection url")
 	flags.StringVar(&oidcConf.ClientID, "client-id", oidcConf.ClientID, "set client ID (required)")
-	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret (required)")
+	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret")
 	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
 	flags.StringVar(&oidcConf.DPoPPrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
 	flags.StringVar(&oidcConf.DPoPPublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
@@ -68,10 +68,6 @@ func parseTokenExchangeFlags(name string, args []string, oidcConf *oidc.Config) 
 		{
 			oidcConf.ClientID == "",
 			"client-id is required",
-		},
-		{
-			oidcConf.ClientSecret == "",
-			"client-secret is required",
 		},
 		{
 			flowConf.SubjectToken == "",

@@ -57,6 +57,22 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 				DPoP:               true,
 			},
 		},
+		{
+			"minimum required flags",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--subject-token", "subject-token",
+			},
+			oidc.Config{
+				IssuerURL:         "https://example.com",
+				ClientID:          "client-id",
+			},
+			oidc.TokenExchangeFlowConfig{
+				SubjectToken:     "subject-token",
+				SubjectTokenType: "urn:ietf:params:oauth:token-type:access_token",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -103,14 +119,6 @@ func TestParseTokenExchangeFlagsError(t *testing.T) {
 				"--client-secret", "client-secret",
 			},
 			"invalid arguments: client-id is required",
-		},
-		{
-			"missing client-secret",
-			[]string{
-				"--issuer", "https://example.com",
-				"--client-id", "client-id",
-			},
-			"invalid arguments: client-secret is required",
 		},
 		{
 			"missing subject token",
