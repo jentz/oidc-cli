@@ -65,8 +65,8 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 				"--subject-token", "subject-token",
 			},
 			oidc.Config{
-				IssuerURL:         "https://example.com",
-				ClientID:          "client-id",
+				IssuerURL: "https://example.com",
+				ClientID:  "client-id",
 			},
 			oidc.TokenExchangeFlowConfig{
 				SubjectToken:     "subject-token",
