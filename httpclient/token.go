@@ -16,6 +16,19 @@ type TokenRequest struct {
 	Params       url.Values
 }
 
+// TokenExchangeInput is used to construct the parameters of a token exchange request
+type TokenExchangeInput struct {
+	GrantType          string
+	Resource           string
+	Audience           string
+	Scope              string
+	RequestedTokenType string
+	SubjectToken       string
+	SubjectTokenType   string
+	ActorToken         string
+	ActorTokenType     string
+}
+
 // ExecuteTokenRequest sends a token request to the specified endpoint
 func (c *Client) ExecuteTokenRequest(ctx context.Context, tokenEndpoint string, req *TokenRequest, headers map[string]string) (*Response, error) {
 	if req.Params == nil {
@@ -108,6 +121,43 @@ func CreateDeviceCodeTokenRequest(clientID, clientSecret string, authMethod Auth
 
 	return &TokenRequest{
 		GrantType:    "urn:ietf:params:oauth:grant-type:device_code",
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		AuthMethod:   authMethod,
+		Params:       params,
+	}
+}
+
+// CreateTokenExchangeRequest creates a token request for the token exchange grant
+func CreateTokenExchangeRequest(clientID, clientSecret string, authMethod AuthMethod, input TokenExchangeInput) *TokenRequest {
+	params := url.Values{}
+
+	// Required parameters
+	params.Set("subject_token", input.SubjectToken)
+	params.Set("subject_token_type", input.SubjectTokenType)
+
+	// Optional parameters
+	if input.Resource != "" {
+		params.Set("resource", input.Resource)
+	}
+	if input.Audience != "" {
+		params.Set("audience", input.Audience)
+	}
+	if input.Scope != "" {
+		params.Set("scope", input.Scope)
+	}
+	if input.RequestedTokenType != "" {
+		params.Set("requested_token_type", input.RequestedTokenType)
+	}
+	if input.ActorToken != "" {
+		params.Set("actor_token", input.ActorToken)
+	}
+	if input.ActorTokenType != "" {
+		params.Set("actor_token_type", input.ActorTokenType)
+	}
+
+	return &TokenRequest{
+		GrantType:    "urn:ietf:params:oauth:grant-type:token-exchange",
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		AuthMethod:   authMethod,

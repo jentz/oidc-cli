@@ -319,6 +319,100 @@ func TestCreateDeviceCodeTokenRequest(t *testing.T) {
 	}
 }
 
+func TestCreateTokenExchangeRequest(t *testing.T) {
+	tests := []struct {
+		name         string
+		clientID     string
+		clientSecret string
+		authMethod   AuthMethod
+		input        TokenExchangeInput
+		wantParams   map[string]string
+	}{
+		{
+			name:         "required params",
+			clientID:     "client123",
+			clientSecret: "secret456",
+			authMethod:   AuthMethodPost,
+			input: TokenExchangeInput{
+				SubjectToken:     "subject-token",
+				SubjectTokenType: "urn:ietf:params:oauth:token-type:access_token",
+			},
+			wantParams: map[string]string{
+				"subject_token":      "subject-token",
+				"subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+				// Check that optional params are not set
+				"resource":             "",
+				"audience":             "",
+				"scope":                "",
+				"requested_token_type": "",
+				"actor_token":          "",
+				"actor_token_type":     "",
+			},
+		},
+		{
+			name:         "with optional params",
+			clientID:     "client123",
+			clientSecret: "secret456",
+			authMethod:   AuthMethodPost,
+			input: TokenExchangeInput{
+				SubjectToken:       "subject-token",
+				SubjectTokenType:   "urn:ietf:params:oauth:token-type:access_token",
+				Resource:           "https://api.example.com",
+				Audience:           "https://api.example.com",
+				Scope:              "read write",
+				RequestedTokenType: "urn:ietf:params:oauth:token-type:access_token",
+				ActorToken:         "actor-token",
+				ActorTokenType:     "urn:ietf:params:oauth:token-type:access_token",
+			},
+			wantParams: map[string]string{
+				"subject_token":        "subject-token",
+				"subject_token_type":   "urn:ietf:params:oauth:token-type:access_token",
+				"resource":             "https://api.example.com",
+				"audience":             "https://api.example.com",
+				"scope":                "read write",
+				"requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+				"actor_token":          "actor-token",
+				"actor_token_type":     "urn:ietf:params:oauth:token-type:access_token",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := CreateTokenExchangeRequest(tt.clientID, tt.clientSecret, tt.authMethod, tt.input)
+
+			// Check basic fields
+			if req.ClientID != tt.clientID {
+				t.Errorf("got ClientID %q, want %q", req.ClientID, tt.clientID)
+			}
+
+			if req.ClientSecret != tt.clientSecret {
+				t.Errorf("got ClientSecret %q, want %q", req.ClientSecret, tt.clientSecret)
+			}
+
+			if req.AuthMethod != tt.authMethod {
+				t.Errorf("got AuthMethod %v, want %v", req.AuthMethod, tt.authMethod)
+			}
+
+			if req.GrantType != "urn:ietf:params:oauth:grant-type:token-exchange" {
+				t.Errorf("got GrantType %q, want %q", req.GrantType, "urn:ietf:params:oauth:grant-type:token-exchange")
+			}
+
+			// Check params
+			for key, want := range tt.wantParams {
+				got := req.Params.Get(key)
+				if got != want {
+					if want == "" {
+						t.Errorf("got param %s=%q, want empty", key, got)
+					} else {
+						t.Errorf("got param %s=%q, want %q", key, got, want)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestParseTokenResponse(t *testing.T) {
 	tests := []struct {
 		name       string
