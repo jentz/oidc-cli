@@ -47,11 +47,18 @@ func NewClient(cfg *Config) *Client {
 
 	transport := cfg.Transport
 	if transport == nil {
-		transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: cfg.SkipTLSVerify,
-			},
+		transport = http.DefaultTransport
+	}
+
+	if httpTransport, ok := transport.(*http.Transport); ok {
+		httpTransport = httpTransport.Clone()
+		tlsClientConfig := httpTransport.TLSClientConfig.Clone()
+		if tlsClientConfig == nil {
+			tlsClientConfig = &tls.Config{}
 		}
+		tlsClientConfig.InsecureSkipVerify = cfg.SkipTLSVerify
+		httpTransport.TLSClientConfig = tlsClientConfig
+		transport = httpTransport
 	}
 
 	return &Client{
