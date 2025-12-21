@@ -3,8 +3,10 @@ package httpclient
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"time"
 )
 
 // TokenRequest represents an OAuth2 token request
@@ -61,6 +63,57 @@ func (c *Client) ExecuteTokenRequest(ctx context.Context, tokenEndpoint string, 
 
 	// Execute the request
 	return c.PostForm(ctx, tokenEndpoint, req.Params, headers)
+}
+
+// ExecutePollingTokenRequest sends a token request to the specified endpoint, polling at the specified interval until a successful response is received
+func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint string, req *TokenRequest, interval int) (*Response, error) {
+	if interval <= 0 {
+		interval = 5 // Default polling interval in seconds
+	}
+
+	for {
+		resp, err := c.ExecuteTokenRequest(ctx, tokenEndpoint, req, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.IsSuccess() {
+			return resp, nil
+		}
+
+		// Parse error response to check for "authorization_pending" or "slow_down"
+		oauth2Err := &Error{
+			StatusCode: resp.StatusCode,
+			RawBody:    resp.String(),
+		}
+		var mapResp map[string]interface{}
+
+		if err := json.Unmarshal(resp.Body, &mapResp); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+		}
+
+		if errStr, ok := mapResp["error"].(string); ok {
+			oauth2Err.ErrorType = errStr
+			if desc, ok := mapResp["error_description"].(string); ok {
+				oauth2Err.ErrorDescription = desc
+			}
+
+			if oauth2Err.ErrorType == "authorization_pending" {
+				// Wait and poll again
+				time.Sleep(time.Duration(interval) * time.Second)
+				continue
+			} else if oauth2Err.ErrorType == "slow_down" {
+				// Increase interval and poll again
+				interval += 5
+				time.Sleep(time.Duration(interval) * time.Second)
+				continue
+			} else {
+				return nil, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+			}
+		}
+
+		return nil, fmt.Errorf("%w: %v", ErrHTTPFailure, oauth2Err)
+	}
 }
 
 // CreateAuthCodeTokenRequest creates a token request for the authorization code grant

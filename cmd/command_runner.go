@@ -27,6 +27,7 @@ type Command struct {
 var commands = []Command{
 	{Name: "authorization_code", Help: "Use the Authorization Code flow to obtain tokens.", Configure: parseAuthorizationCodeFlags},
 	{Name: "client_credentials", Help: "Use the Client Credentials flow to obtain tokens.", Configure: parseClientCredentialsFlags},
+	{Name: "device", Help: "Use the Device flow to obtain tokens.", Configure: parseDeviceFlags},
 	{Name: "introspect", Help: "Validate a token and retrieve associated claims.", Configure: parseIntrospectFlags},
 	{Name: "token_refresh", Help: "Use a refresh token to obtain new tokens.", Configure: parseTokenRefreshFlags},
 	{Name: "token_exchange", Help: "Exchange a token for different tokens.", Configure: parseTokenExchangeFlags},
