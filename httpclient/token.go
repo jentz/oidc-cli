@@ -3,7 +3,7 @@ package httpclient
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -81,38 +81,19 @@ func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint s
 			return resp, nil
 		}
 
-		// Parse error response to check for "authorization_pending" or "slow_down"
-		oauth2Err := &Error{
-			StatusCode: resp.StatusCode,
-			RawBody:    resp.String(),
+		_, err = ParseTokenResponse(resp)
+		if errors.Is(err, ErrAuthorizationPending) {
+			// Wait and poll again
+			time.Sleep(time.Duration(interval) * time.Second)
+			continue
+		} else if errors.Is(err, ErrSlowDown) {
+			// Increase interval and poll again
+			interval += 5
+			time.Sleep(time.Duration(interval) * time.Second)
+			continue
+		} else {
+			return nil, err
 		}
-		var mapResp map[string]interface{}
-
-		if err := json.Unmarshal(resp.Body, &mapResp); err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
-		}
-
-		if errStr, ok := mapResp["error"].(string); ok {
-			oauth2Err.ErrorType = errStr
-			if desc, ok := mapResp["error_description"].(string); ok {
-				oauth2Err.ErrorDescription = desc
-			}
-
-			if oauth2Err.ErrorType == "authorization_pending" {
-				// Wait and poll again
-				time.Sleep(time.Duration(interval) * time.Second)
-				continue
-			} else if oauth2Err.ErrorType == "slow_down" {
-				// Increase interval and poll again
-				interval += 5
-				time.Sleep(time.Duration(interval) * time.Second)
-				continue
-			} else {
-				return nil, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
-			}
-		}
-
-		return nil, fmt.Errorf("%w: %v", ErrHTTPFailure, oauth2Err)
 	}
 }
 
@@ -240,7 +221,15 @@ func ParseTokenResponse(resp *Response) (map[string]interface{}, error) {
 			if desc, ok := tokenResp["error_description"].(string); ok {
 				oauth2Err.ErrorDescription = desc
 			}
-			return tokenResp, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+
+			switch errStr {
+			case "authorization_pending":
+				return tokenResp, fmt.Errorf("%w: %v", ErrAuthorizationPending, oauth2Err)
+			case "slow_down":
+				return tokenResp, fmt.Errorf("%w: %v", ErrSlowDown, oauth2Err)
+			default:
+				return tokenResp, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+			}
 		}
 
 		return tokenResp, fmt.Errorf("%w: %v", ErrHTTPFailure, oauth2Err)

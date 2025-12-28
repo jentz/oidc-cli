@@ -53,7 +53,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 
 	resp, err := client.ExecuteDeviceAuthorizationRequest(ctx, c.Config.DeviceAuthorizationEndpoint, req, headers)
 	if err != nil {
-		return fmt.Errorf("token request failed: %w", err)
+		return fmt.Errorf("device authorization request failed: %w", err)
 	}
 
 	deviceAuthResp, err := httpclient.ParseDeviceAuthorizationResponse(resp)
@@ -79,7 +79,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 	)
 	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
 	if err != nil {
-		return fmt.Errorf("device token request failed: %w", err)
+		return fmt.Errorf("polling token request failed: %w", err)
 	}
 	tokenData, err := httpclient.ParseTokenResponse(tokenResp)
 	if err != nil {
