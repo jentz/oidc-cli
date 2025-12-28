@@ -63,9 +63,11 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 
 	// Print link to verification URI
 	if deviceAuthResp.VerificationURIComplete != "" {
-		log.Outputf("To authorize, visit: %s\n", deviceAuthResp.VerificationURIComplete)
+		log.Printf("device verification uri: %s\n", deviceAuthResp.VerificationURIComplete)
+		httpclient.NewDefaultBrowserLauncher().OpenURL(deviceAuthResp.VerificationURIComplete)
 	} else {
-		log.Outputf("To authorize, visit: %s and enter code: %s\n", deviceAuthResp.VerificationURI, deviceAuthResp.UserCode)
+		log.Printf("device verification uri: %s, verification code: %s\n", deviceAuthResp.VerificationURI, deviceAuthResp.UserCode)
+		httpclient.NewDefaultBrowserLauncher().OpenURL(deviceAuthResp.VerificationURI)
 	}
 
 	// Poll for token
