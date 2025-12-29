@@ -91,9 +91,8 @@ func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint s
 			interval += 5
 			time.Sleep(time.Duration(interval) * time.Second)
 			continue
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 }
 

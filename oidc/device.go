@@ -63,11 +63,19 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 
 	// Print link to verification URI
 	if deviceAuthResp.VerificationURIComplete != "" {
-		log.Printf("device verification uri: %s\n", deviceAuthResp.VerificationURIComplete)
-		httpclient.NewDefaultBrowserLauncher().OpenURL(deviceAuthResp.VerificationURIComplete)
+		verificationURI := deviceAuthResp.VerificationURIComplete
+		log.Printf("device verification uri: %s\n", verificationURI)
+		err := httpclient.NewDefaultBrowserLauncher().OpenURL(verificationURI)
+		if err != nil {
+			log.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
+		}
 	} else {
-		log.Printf("device verification uri: %s, verification code: %s\n", deviceAuthResp.VerificationURI, deviceAuthResp.UserCode)
-		httpclient.NewDefaultBrowserLauncher().OpenURL(deviceAuthResp.VerificationURI)
+		verificationURI := deviceAuthResp.VerificationURI
+		log.Printf("device verification uri: %s, verification code: %s\n", verificationURI, deviceAuthResp.UserCode)
+		err := httpclient.NewDefaultBrowserLauncher().OpenURL(verificationURI)
+		if err != nil {
+			log.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
+		}
 	}
 
 	// Poll for token

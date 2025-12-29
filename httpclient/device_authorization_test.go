@@ -80,7 +80,10 @@ func TestExecuteDeviceAuthorizationRequest(t *testing.T) {
 				}
 
 				w.WriteHeader(tt.resp.StatusCode)
-				w.Write(tt.resp.Body)
+				_, err := w.Write(tt.resp.Body)
+				if err != nil {
+					t.Fatalf("failed to write response body: %v", err)
+				}
 			}))
 			defer ts.Close()
 

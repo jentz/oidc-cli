@@ -140,7 +140,7 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			attempts := 0
-			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				if attempts >= len(tt.intervals) {
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(`{"access_token":"token123","token_type":"Bearer"}`))
