@@ -106,34 +106,40 @@ func TestExecuteTokenRequest(t *testing.T) {
 
 func TestExecutePollingTokenRequest(t *testing.T) {
 	tests := []struct {
-		name             string
-		intervals        []int
-		expectedDuration time.Duration
+		name         string
+		intervals    []int
+		wantDuration time.Duration
+		wantAttempts int
 	}{
 		{
-			name:             "immediate success",
-			intervals:        []int{},
-			expectedDuration: 0,
+			name:         "immediate success",
+			intervals:    []int{},
+			wantDuration: 0,
+			wantAttempts: 1,
 		},
 		{
-			name:             "single interval",
-			intervals:        []int{5},
-			expectedDuration: 5 * time.Second,
+			name:         "single interval",
+			intervals:    []int{5},
+			wantDuration: 5 * time.Second,
+			wantAttempts: 2,
 		},
 		{
-			name:             "single custom interval",
-			intervals:        []int{2},
-			expectedDuration: 2 * time.Second,
+			name:         "single custom interval",
+			intervals:    []int{2},
+			wantDuration: 2 * time.Second,
+			wantAttempts: 2,
 		},
 		{
-			name:             "multiple static intervals",
-			intervals:        []int{5, 5},
-			expectedDuration: 10 * time.Second,
+			name:         "multiple static intervals",
+			intervals:    []int{5, 5},
+			wantDuration: 10 * time.Second,
+			wantAttempts: 3,
 		},
 		{
-			name:             "multiple increasing intervals",
-			intervals:        []int{5, 10},
-			expectedDuration: 15 * time.Second,
+			name:         "multiple increasing intervals",
+			intervals:    []int{5, 10},
+			wantDuration: 15 * time.Second,
+			wantAttempts: 3,
 		},
 	}
 
@@ -170,7 +176,7 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 				testInterval = tt.intervals[0]
 			}
 			resp, err := client.ExecutePollingTokenRequest(context.Background(), ts.URL, req, testInterval)
-			testDuration := time.Since(testStart)
+			actualDuration := time.Since(testStart)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -180,12 +186,12 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 				t.Errorf("Expected successful response, got status %d", resp.StatusCode)
 			}
 
-			if attempts != (len(tt.intervals) + 1) {
-				t.Errorf("Expected %d attempts, got %d", len(tt.intervals), attempts)
+			if attempts != tt.wantAttempts {
+				t.Errorf("Expected %d attempts, got %d", tt.wantAttempts, attempts)
 			}
 
-			if testDuration < tt.expectedDuration-500*time.Millisecond || testDuration > tt.expectedDuration+500*time.Millisecond {
-				t.Errorf("Expected duration around %v, got %v", tt.expectedDuration, testDuration)
+			if actualDuration < tt.wantDuration-500*time.Millisecond || actualDuration > tt.wantDuration+500*time.Millisecond {
+				t.Errorf("Expected duration around %v, got %v", tt.wantDuration, actualDuration)
 			}
 		})
 	}
