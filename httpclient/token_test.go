@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestExecuteTokenRequest(t *testing.T) {
@@ -98,6 +99,99 @@ func TestExecuteTokenRequest(t *testing.T) {
 
 			if !resp.IsSuccess() {
 				t.Errorf("Expected successful response, got status %d", resp.StatusCode)
+			}
+		})
+	}
+}
+
+func TestExecutePollingTokenRequest(t *testing.T) {
+	tests := []struct {
+		name         string
+		intervals    []int
+		wantDuration time.Duration
+		wantAttempts int
+	}{
+		{
+			name:         "immediate success",
+			intervals:    []int{},
+			wantDuration: 0,
+			wantAttempts: 1,
+		},
+		{
+			name:         "single interval",
+			intervals:    []int{5},
+			wantDuration: 5 * time.Second,
+			wantAttempts: 2,
+		},
+		{
+			name:         "single custom interval",
+			intervals:    []int{2},
+			wantDuration: 2 * time.Second,
+			wantAttempts: 2,
+		},
+		{
+			name:         "multiple static intervals",
+			intervals:    []int{5, 5},
+			wantDuration: 10 * time.Second,
+			wantAttempts: 3,
+		},
+		{
+			name:         "multiple increasing intervals",
+			intervals:    []int{5, 10},
+			wantDuration: 15 * time.Second,
+			wantAttempts: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			attempts := 0
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if attempts >= len(tt.intervals) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"access_token":"token123","token_type":"Bearer"}`))
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					if attempts > 0 && (tt.intervals[attempts]-tt.intervals[attempts-1]) > 0 {
+						_, _ = w.Write([]byte(`{"error":"slow_down"}`))
+					} else {
+						_, _ = w.Write([]byte(`{"error":"authorization_pending"}`))
+					}
+				}
+				attempts++
+			}))
+			defer ts.Close()
+
+			client := NewClient(nil)
+			req := &TokenRequest{
+				GrantType:    "urn:ietf:params:oauth:grant-type:device_code",
+				ClientID:     "device-client",
+				ClientSecret: "device-secret",
+				AuthMethod:   AuthMethodBasic,
+				Params:       url.Values{"device_code": []string{"device123"}},
+			}
+			testStart := time.Now()
+			testInterval := 5
+			if len(tt.intervals) > 0 {
+				testInterval = tt.intervals[0]
+			}
+			resp, err := client.ExecutePollingTokenRequest(context.Background(), ts.URL, req, testInterval)
+			actualDuration := time.Since(testStart)
+
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			if !resp.IsSuccess() {
+				t.Errorf("Expected successful response, got status %d", resp.StatusCode)
+			}
+
+			if attempts != tt.wantAttempts {
+				t.Errorf("Expected %d attempts, got %d", tt.wantAttempts, attempts)
+			}
+
+			if actualDuration < tt.wantDuration-500*time.Millisecond || actualDuration > tt.wantDuration+500*time.Millisecond {
+				t.Errorf("Expected duration around %v, got %v", tt.wantDuration, actualDuration)
 			}
 		})
 	}

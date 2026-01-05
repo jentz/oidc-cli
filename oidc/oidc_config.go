@@ -16,6 +16,7 @@ type Config struct {
 	AuthorizationEndpoint              string
 	PushedAuthorizationRequestEndpoint string
 	TokenEndpoint                      string
+	DeviceAuthorizationEndpoint        string
 	IntrospectionEndpoint              string
 	UserinfoEndpoint                   string
 	JWKSEndpoint                       string
@@ -47,6 +48,10 @@ func (c *Config) DiscoverEndpoints(ctx context.Context) error {
 
 	if c.TokenEndpoint == "" {
 		c.TokenEndpoint = discoveryConfig.TokenEndpoint
+	}
+
+	if c.DeviceAuthorizationEndpoint == "" {
+		c.DeviceAuthorizationEndpoint = discoveryConfig.DeviceAuthorizationEndpoint
 	}
 
 	if c.IntrospectionEndpoint == "" {
