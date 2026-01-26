@@ -414,7 +414,7 @@ func TestCreateDeviceCodeTokenRequest(t *testing.T) {
 
 	gotCodeVerifier := req.Params.Get("code_verifier")
 	if gotCodeVerifier != "test-code-verifier" {
-		t.Errorf("got device_code %q, want %q", gotDeviceCode, "device123")
+		t.Errorf("got code_verifier %q, want %q", gotCodeVerifier, "test-code-verifier")
 	}
 }
 
