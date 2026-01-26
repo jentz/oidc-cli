@@ -386,7 +386,7 @@ func TestCreateClientCredentialsRequest(t *testing.T) {
 }
 
 func TestCreateDeviceCodeTokenRequest(t *testing.T) {
-	req := CreateDeviceCodeTokenRequest("device-client", "device-secret", AuthMethodBasic, "device123")
+	req := CreateDeviceCodeTokenRequest("device-client", "device-secret", AuthMethodBasic, "device123", "test-code-verifier")
 
 	// Check basic fields
 	wantGrantType := "urn:ietf:params:oauth:grant-type:device_code"
@@ -410,6 +410,11 @@ func TestCreateDeviceCodeTokenRequest(t *testing.T) {
 	gotDeviceCode := req.Params.Get("device_code")
 	if gotDeviceCode != "device123" {
 		t.Errorf("got device_code %q, want %q", gotDeviceCode, "device123")
+	}
+
+	gotCodeVerifier := req.Params.Get("code_verifier")
+	if gotCodeVerifier != "test-code-verifier" {
+		t.Errorf("got code_verifier %q, want %q", gotCodeVerifier, "test-code-verifier")
 	}
 }
 

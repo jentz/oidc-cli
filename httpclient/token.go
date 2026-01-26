@@ -148,9 +148,13 @@ func CreateClientCredentialsRequest(clientID, clientSecret string, authMethod Au
 }
 
 // CreateDeviceCodeTokenRequest creates a token request for the device code grant
-func CreateDeviceCodeTokenRequest(clientID, clientSecret string, authMethod AuthMethod, deviceCode string) *TokenRequest {
+func CreateDeviceCodeTokenRequest(clientID, clientSecret string, authMethod AuthMethod, deviceCode, codeVerifier string) *TokenRequest {
 	params := url.Values{}
 	params.Set("device_code", deviceCode)
+
+	if codeVerifier != "" {
+		params.Set("code_verifier", codeVerifier)
+	}
 
 	return &TokenRequest{
 		GrantType:    "urn:ietf:params:oauth:grant-type:device_code",

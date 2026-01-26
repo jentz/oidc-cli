@@ -35,6 +35,27 @@ func TestExecuteDeviceAuthorizationRequest(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
+			name: "successful device authorization with pkce",
+			req: &DeviceAuthorizationRequest{
+				ClientID:            "test-client-id",
+				Scope:               "openid profile email",
+				CodeChallenge:       "test-code-challenge",
+				CodeChallengeMethod: "S256",
+			},
+			resp: &Response{
+				StatusCode: http.StatusOK,
+				Body: []byte(`{
+					"device_code": "test-device-code",
+					"user_code": "test-user-code",
+					"verification_uri": "https://example.com/verify",
+					"verification_uri_complete": "https://example.com/verify?user_code=test-user-code",
+					"expires_in": 600,
+					"interval": 5
+				}`),
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
 			name: "server error",
 			req: &DeviceAuthorizationRequest{
 				ClientID: "test-client-id",

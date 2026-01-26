@@ -18,6 +18,21 @@ type DeviceFlow struct {
 type DeviceFlowConfig struct {
 	Scope string
 	DPoP  bool
+	PKCE  bool
+}
+
+func (c *DeviceFlow) setupPKCE() (string, error) {
+	if !c.FlowConfig.PKCE {
+		return "", nil
+	}
+	if c.Config.ClientSecret == "" {
+		c.Config.AuthMethod = httpclient.AuthMethodNone
+	}
+	codeVerifier, err := crypto.GeneratePKCECodeVerifier()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PKCE code verifier: %w", err)
+	}
+	return codeVerifier, nil
 }
 
 func (c *DeviceFlow) setupDPoPHeaders() (map[string]string, error) {
@@ -39,10 +54,19 @@ func (c *DeviceFlow) setupDPoPHeaders() (map[string]string, error) {
 
 func (c *DeviceFlow) Run(ctx context.Context) error {
 	client := c.Config.Client
+	codeVerifier, err := c.setupPKCE()
+	if err != nil {
+		return err
+	}
 
 	req := &httpclient.DeviceAuthorizationRequest{
 		ClientID: c.Config.ClientID,
 		Scope:    c.FlowConfig.Scope,
+	}
+
+	if codeVerifier != "" {
+		req.CodeChallengeMethod = "S256"
+		req.CodeChallenge = crypto.GeneratePKCECodeChallenge(codeVerifier)
 	}
 
 	// Handle DPoP
@@ -84,6 +108,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		c.Config.ClientSecret,
 		c.Config.AuthMethod,
 		deviceAuthResp.DeviceCode,
+		codeVerifier,
 	)
 	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
 	if err != nil {

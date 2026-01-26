@@ -26,6 +26,7 @@ func parseDeviceFlags(name string, args []string, oidcConf *oidc.Config) (runner
 	flags.StringVar(&oidcConf.DPoPPublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
 
 	var flowConf oidc.DeviceFlowConfig
+	flags.BoolVar(&flowConf.PKCE, "pkce", false, "use proof-key for code exchange (PKCE)")
 	flags.StringVar(&flowConf.Scope, "scope", "openid", "set scope as a space separated list")
 	flags.BoolVar(&flowConf.DPoP, "dpop", false, "use dpop-bound access tokens")
 
@@ -58,6 +59,10 @@ func parseDeviceFlags(name string, args []string, oidcConf *oidc.Config) (runner
 		{
 			flowConf.DPoP && (oidcConf.DPoPPrivateKeyFile == "" || oidcConf.DPoPPublicKeyFile == ""),
 			"both dpop-private-key and dpop-public-key are required when using DPoP",
+		},
+		{
+			oidcConf.ClientSecret == "" && !flowConf.PKCE,
+			"client-secret is required unless using PKCE",
 		},
 	}
 
