@@ -8,8 +8,10 @@ import (
 )
 
 type DeviceAuthorizationRequest struct {
-	ClientID string
-	Scope    string
+	ClientID            string
+	Scope               string
+	CodeChallenge       string
+	CodeChallengeMethod string
 }
 
 type DeviceAuthorizationResponse struct {
@@ -31,6 +33,12 @@ func (c *Client) ExecuteDeviceAuthorizationRequest(ctx context.Context, endpoint
 	params.Set("client_id", req.ClientID)
 	if req.Scope != "" {
 		params.Set("scope", req.Scope)
+	}
+	if req.CodeChallenge != "" {
+		params.Set("code_challenge", req.CodeChallenge)
+	}
+	if req.CodeChallengeMethod != "" {
+		params.Set("code_challenge_method", req.CodeChallengeMethod)
 	}
 
 	// Execute the request
