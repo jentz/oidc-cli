@@ -8,6 +8,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
+	"math/big"
 	"reflect"
 	"testing"
 
@@ -263,8 +265,8 @@ func TestConstructJWT(t *testing.T) {
 			if got == nil {
 				t.Errorf("token got = %v, want %v", got, "not nil")
 			}
-			if reflect.TypeOf(got) != reflect.TypeOf(&jwt.Token{}) {
-				t.Errorf("token type = %v, want %v", reflect.TypeOf(got), "*jwt.Token")
+			if reflect.TypeOf(got) != reflect.TypeFor[*jwt.Token]() {
+				t.Errorf("token type = %v, want %v", reflect.TypeOf(got), reflect.TypeFor[*jwt.Token]())
 			}
 			if got.Header == nil {
 				t.Errorf("token.Header = %v, want %v", got.Header, "not nil")
@@ -328,6 +330,78 @@ func TestSignJWT(t *testing.T) {
 			}
 			if tt.dpopProofBuilder.signedToken == "" {
 				t.Errorf("dpopProofBuilder.signedToken = %v, want %v", tt.dpopProofBuilder.signedToken, "not empty")
+			}
+		})
+	}
+}
+
+func TestEcdsaPublicKeyToJWK(t *testing.T) {
+	curves := []struct {
+		name      string
+		curve     elliptic.Curve
+		crv       string
+		coordSize int
+	}{
+		{"P-256", elliptic.P256(), "P-256", 32},
+		{"P-384", elliptic.P384(), "P-384", 48},
+		{"P-521", elliptic.P521(), "P-521", 66},
+	}
+
+	for _, c := range curves {
+		t.Run(c.name, func(t *testing.T) {
+			privateKey, err := ecdsa.GenerateKey(c.curve, rand.Reader)
+			if err != nil {
+				t.Fatalf("GenerateKey(%s) error: %v", c.name, err)
+			}
+			pubKey := &privateKey.PublicKey
+
+			result := ecdsaPublicKeyToJWK(pubKey)
+			jwk, ok := result.(*ecdsaJWK)
+			if !ok {
+				t.Fatalf("expected *ecdsaJWK, got %T", result)
+			}
+
+			if jwk.Kty != "EC" {
+				t.Errorf("Kty = %q, want %q", jwk.Kty, "EC")
+			}
+			if jwk.Crv != c.crv {
+				t.Errorf("Crv = %q, want %q", jwk.Crv, c.crv)
+			}
+
+			// Decode X and Y and verify they match the key's actual coordinates
+			xBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
+			if err != nil {
+				t.Fatalf("decoding X: %v", err)
+			}
+			yBytes, err := base64.RawURLEncoding.DecodeString(jwk.Y)
+			if err != nil {
+				t.Fatalf("decoding Y: %v", err)
+			}
+
+			// RFC 7518: coordinates MUST be the full curve byte size (zero-padded)
+			if len(xBytes) != c.coordSize {
+				t.Errorf("X byte length = %d, want %d", len(xBytes), c.coordSize)
+			}
+			if len(yBytes) != c.coordSize {
+				t.Errorf("Y byte length = %d, want %d", len(yBytes), c.coordSize)
+			}
+
+			// Verify the decoded coordinates match the original key
+			//nolint:staticcheck // SA1019: using deprecated X/Y fields intentionally to verify correctness
+			expectedX := pubKey.X.FillBytes(make([]byte, c.coordSize))
+			//nolint:staticcheck // SA1019: using deprecated X/Y fields intentionally to verify correctness
+			expectedY := pubKey.Y.FillBytes(make([]byte, c.coordSize))
+
+			gotX := new(big.Int).SetBytes(xBytes)
+			gotY := new(big.Int).SetBytes(yBytes)
+			wantX := new(big.Int).SetBytes(expectedX)
+			wantY := new(big.Int).SetBytes(expectedY)
+
+			if gotX.Cmp(wantX) != 0 {
+				t.Errorf("X coordinate mismatch")
+			}
+			if gotY.Cmp(wantY) != 0 {
+				t.Errorf("Y coordinate mismatch")
 			}
 		})
 	}

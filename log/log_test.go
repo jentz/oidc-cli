@@ -346,21 +346,21 @@ func BenchmarkLogging(b *testing.B) {
 	logger, _, _ := setupTestLogger(true)
 
 	b.Run("Printf", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			logger.Printf("benchmark %d", i)
+		for b.Loop() {
+			logger.Printf("benchmark message")
 		}
 	})
 
 	b.Run("Outputf", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			logger.Outputf("result %d", i)
+		for b.Loop() {
+			logger.Outputf("result message")
 		}
 	})
 
 	b.Run("Printf_disabled", func(b *testing.B) {
 		quietLogger, _, _ := setupTestLogger(false)
-		for i := 0; i < b.N; i++ {
-			quietLogger.Printf("benchmark %d", i)
+		for b.Loop() {
+			quietLogger.Printf("benchmark message")
 		}
 	})
 }

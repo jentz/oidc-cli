@@ -106,7 +106,7 @@ func (d *DPoPProofBuilder) URL(s string) *DPoPProofBuilder {
 
 func (d *DPoPProofBuilder) Build() (*DPoPProof, error) {
 	if len(d.errs) > 0 {
-		return nil, fmt.Errorf("build errors: %v", d.errs)
+		return nil, errors.Join(d.errs...)
 	}
 
 	err := d.generateJTI()
@@ -198,14 +198,12 @@ func (d *DPoPProofBuilder) generateJTI() error {
 }
 
 func ecdsaPublicKeyToJWK(k *ecdsa.PublicKey) any {
-	// Calculate the size of the byte array representation of an elliptic curve coordinate
-	// and ensure that the byte array representation of the key is padded correctly.
-	bits := k.Curve.Params().BitSize
-	keyCurveBytesSize := bits/8 + bits%8
+	coordSize := (k.Curve.Params().BitSize + 7) / 8
+	raw, _ := k.Bytes() // uncompressed SEC 1: 0x04 || X || Y, each coord zero-padded to coordSize
 
 	return &ecdsaJWK{
-		X:   base64.RawURLEncoding.EncodeToString(k.X.FillBytes(make([]byte, keyCurveBytesSize))),
-		Y:   base64.RawURLEncoding.EncodeToString(k.Y.FillBytes(make([]byte, keyCurveBytesSize))),
+		X:   base64.RawURLEncoding.EncodeToString(raw[1 : 1+coordSize]),
+		Y:   base64.RawURLEncoding.EncodeToString(raw[1+coordSize : 1+2*coordSize]),
 		Crv: k.Curve.Params().Name,
 		Kty: "EC",
 	}
