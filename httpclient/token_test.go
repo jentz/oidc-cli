@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -195,6 +196,93 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExecutePollingTokenRequest_ContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	attempts := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		attempts++
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":"authorization_pending"}`))
+	}))
+	defer ts.Close()
+
+	client := NewClient(nil)
+	req := &TokenRequest{
+		GrantType:    "urn:ietf:params:oauth:grant-type:device_code",
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		AuthMethod:   AuthMethodBasic,
+		Params:       url.Values{"device_code": []string{"test-code"}},
+	}
+
+	// Cancel the context after a short delay
+	time.AfterFunc(100*time.Millisecond, cancel)
+
+	start := time.Now()
+	resp, err := client.ExecutePollingTokenRequest(ctx, ts.URL, req, 10)
+	elapsed := time.Since(start)
+
+	if resp != nil {
+		t.Error("Expected nil response")
+	}
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("Expected context.Canceled error, got: %v", err)
+	}
+
+	if elapsed > 1*time.Second {
+		t.Errorf("Context cancellation took too long: %v (should be < 1s)", elapsed)
+	}
+}
+
+func TestSleepWithContext(t *testing.T) {
+	t.Run("normal completion", func(t *testing.T) {
+		err := sleepWithContext(context.Background(), 50*time.Millisecond)
+		if err != nil {
+			t.Errorf("Expected nil error, got: %v", err)
+		}
+	})
+
+	t.Run("context cancelled during sleep", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		time.AfterFunc(50*time.Millisecond, cancel)
+
+		start := time.Now()
+		err := sleepWithContext(ctx, 10*time.Second)
+		elapsed := time.Since(start)
+
+		if err != context.Canceled {
+			t.Errorf("Expected context.Canceled, got: %v", err)
+		}
+
+		if elapsed > 1*time.Second {
+			t.Errorf("Cancellation took too long: %v", elapsed)
+		}
+	})
+
+	t.Run("already cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		start := time.Now()
+		err := sleepWithContext(ctx, 10*time.Second)
+		elapsed := time.Since(start)
+
+		if err != context.Canceled {
+			t.Errorf("Expected context.Canceled, got: %v", err)
+		}
+
+		if elapsed > 100*time.Millisecond {
+			t.Errorf("Should have returned immediately, took: %v", elapsed)
+		}
+	})
 }
 
 func TestCreateAuthCodeTokenRequest(t *testing.T) {

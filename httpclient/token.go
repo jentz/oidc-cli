@@ -9,6 +9,20 @@ import (
 	"time"
 )
 
+// sleepWithContext blocks for duration d or until ctx is cancelled.
+// Returns ctx.Err() if the context was cancelled, nil otherwise.
+func sleepWithContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 // TokenRequest represents an OAuth2 token request
 type TokenRequest struct {
 	GrantType    string
@@ -84,12 +98,16 @@ func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint s
 		_, err = ParseTokenResponse(resp)
 		if errors.Is(err, ErrAuthorizationPending) {
 			// Wait and poll again
-			time.Sleep(time.Duration(interval) * time.Second)
+			if err := sleepWithContext(ctx, time.Duration(interval)*time.Second); err != nil {
+				return nil, err
+			}
 			continue
 		} else if errors.Is(err, ErrSlowDown) {
 			// Increase interval and poll again
 			interval += 5
-			time.Sleep(time.Duration(interval) * time.Second)
+			if err := sleepWithContext(ctx, time.Duration(interval)*time.Second); err != nil {
+				return nil, err
+			}
 			continue
 		}
 		return nil, err
