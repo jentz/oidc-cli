@@ -51,8 +51,6 @@ homebrew_casks:
     repository:
       owner: jentz
       name: homebrew-oidc-cli
-    conflicts:
-      - formula: oidc-cli
     hooks:
       post:
         install: |
