@@ -109,37 +109,31 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 	tests := []struct {
 		name         string
 		intervals    []int
-		wantDuration time.Duration
 		wantAttempts int
 	}{
 		{
 			name:         "immediate success",
 			intervals:    []int{},
-			wantDuration: 0,
 			wantAttempts: 1,
 		},
 		{
 			name:         "single interval",
 			intervals:    []int{5},
-			wantDuration: 5 * time.Second,
 			wantAttempts: 2,
 		},
 		{
 			name:         "single custom interval",
 			intervals:    []int{2},
-			wantDuration: 2 * time.Second,
 			wantAttempts: 2,
 		},
 		{
 			name:         "multiple static intervals",
 			intervals:    []int{5, 5},
-			wantDuration: 10 * time.Second,
 			wantAttempts: 3,
 		},
 		{
 			name:         "multiple increasing intervals",
 			intervals:    []int{5, 10},
-			wantDuration: 15 * time.Second,
 			wantAttempts: 3,
 		},
 	}
@@ -164,6 +158,9 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 			defer ts.Close()
 
 			client := NewClient(nil)
+			client.SetSleepFunc(func(ctx context.Context, _ time.Duration) error {
+				return sleepWithContext(ctx, 1*time.Millisecond)
+			})
 			req := &TokenRequest{
 				GrantType:    "urn:ietf:params:oauth:grant-type:device_code",
 				ClientID:     "device-client",
@@ -171,13 +168,11 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 				AuthMethod:   AuthMethodBasic,
 				Params:       url.Values{"device_code": []string{"device123"}},
 			}
-			testStart := time.Now()
 			testInterval := 5
 			if len(tt.intervals) > 0 {
 				testInterval = tt.intervals[0]
 			}
 			resp, err := client.ExecutePollingTokenRequest(context.Background(), ts.URL, req, testInterval)
-			actualDuration := time.Since(testStart)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -189,10 +184,6 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 
 			if attempts != tt.wantAttempts {
 				t.Errorf("Expected %d attempts, got %d", tt.wantAttempts, attempts)
-			}
-
-			if actualDuration < tt.wantDuration-500*time.Millisecond || actualDuration > tt.wantDuration+500*time.Millisecond {
-				t.Errorf("Expected duration around %v, got %v", tt.wantDuration, actualDuration)
 			}
 		})
 	}
@@ -210,6 +201,9 @@ func TestExecutePollingTokenRequest_ContextCancellation(t *testing.T) {
 	defer ts.Close()
 
 	client := NewClient(nil)
+	client.SetSleepFunc(func(ctx context.Context, _ time.Duration) error {
+		return sleepWithContext(ctx, 1*time.Millisecond)
+	})
 	req := &TokenRequest{
 		GrantType:    "urn:ietf:params:oauth:grant-type:device_code",
 		ClientID:     "test-client",

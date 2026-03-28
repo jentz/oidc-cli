@@ -20,10 +20,14 @@ type Config struct {
 	Transport     http.RoundTripper // Custom HTTP transport, if any
 }
 
+// SleepFunc is a function that sleeps for a duration, respecting context cancellation.
+type SleepFunc func(ctx context.Context, d time.Duration) error
+
 // Client is a wrapper around http.Client with utility methods
 type Client struct {
-	client   *http.Client
-	authDeps *AuthFlowDependencies // Optional dependencies for authorization flows
+	client    *http.Client
+	authDeps  *AuthFlowDependencies // Optional dependencies for authorization flows
+	sleepFunc SleepFunc             // Optional; if nil, sleep() falls back to sleepWithContext
 }
 
 // Response represents an HTTP response with convenience methods
@@ -76,6 +80,20 @@ func (c *Client) SetAuthFlowDependencies(deps *AuthFlowDependencies) {
 	if deps != nil {
 		c.authDeps = deps
 	}
+}
+
+// SetSleepFunc sets a custom sleep function, primarily for testing.
+// Pass nil to reset to default sleepWithContext behavior.
+func (c *Client) SetSleepFunc(fn SleepFunc) {
+	c.sleepFunc = fn
+}
+
+// sleep delegates to the custom sleep function or falls back to sleepWithContext.
+func (c *Client) sleep(ctx context.Context, d time.Duration) error {
+	if c.sleepFunc != nil {
+		return c.sleepFunc(ctx, d)
+	}
+	return sleepWithContext(ctx, d)
 }
 
 // Do performs an HTTP request and handles response processing

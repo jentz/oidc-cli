@@ -22,32 +22,32 @@ func TestNewClient(t *testing.T) {
 	defer ts.Close()
 
 	tests := []struct {
-		name           string
-		cfg            *Config
-		expectTimeout  bool // We'll test timeout behavior
-		timeoutSeconds int  // How long to sleep on the server side
+		name          string
+		cfg           *Config
+		expectTimeout bool          // We'll test timeout behavior
+		serverDelay   time.Duration // How long to sleep on the server side
 	}{
 		{
-			name:           "nil config uses defaults",
-			cfg:            nil,
-			expectTimeout:  false,
-			timeoutSeconds: 1,
+			name:          "nil config uses defaults",
+			cfg:           nil,
+			expectTimeout: false,
+			serverDelay:   50 * time.Millisecond,
 		},
 		{
 			name: "custom timeout works",
 			cfg: &Config{
-				Timeout: 5 * time.Second,
+				Timeout: 500 * time.Millisecond,
 			},
-			expectTimeout:  false,
-			timeoutSeconds: 3,
+			expectTimeout: false,
+			serverDelay:   50 * time.Millisecond,
 		},
 		{
 			name: "timeout works correctly",
 			cfg: &Config{
-				Timeout: 1 * time.Second,
+				Timeout: 50 * time.Millisecond,
 			},
-			expectTimeout:  true,
-			timeoutSeconds: 3,
+			expectTimeout: true,
+			serverDelay:   500 * time.Millisecond,
 		},
 	}
 
@@ -55,7 +55,7 @@ func TestNewClient(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a test server that sleeps for the specified time
 			sleepServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				time.Sleep(time.Duration(tt.timeoutSeconds) * time.Second)
+				time.Sleep(tt.serverDelay)
 				_, _ = w.Write([]byte("response after delay"))
 			}))
 			defer sleepServer.Close()
@@ -379,7 +379,7 @@ func TestDo_InvalidURL(t *testing.T) {
 
 func TestDo_ContextCanceled(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		time.Sleep(2 * time.Second)
+		time.Sleep(50 * time.Millisecond)
 		_, _ = w.Write([]byte("delayed response"))
 	}))
 	defer ts.Close()

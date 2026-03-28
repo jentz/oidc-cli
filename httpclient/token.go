@@ -98,14 +98,14 @@ func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint s
 		_, err = ParseTokenResponse(resp)
 		if errors.Is(err, ErrAuthorizationPending) {
 			// Wait and poll again
-			if err := sleepWithContext(ctx, time.Duration(interval)*time.Second); err != nil {
+			if err := c.sleep(ctx, time.Duration(interval)*time.Second); err != nil {
 				return nil, err
 			}
 			continue
 		} else if errors.Is(err, ErrSlowDown) {
 			// Increase interval and poll again
 			interval += 5
-			if err := sleepWithContext(ctx, time.Duration(interval)*time.Second); err != nil {
+			if err := c.sleep(ctx, time.Duration(interval)*time.Second); err != nil {
 				return nil, err
 			}
 			continue
