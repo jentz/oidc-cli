@@ -10,11 +10,11 @@ type CustomArgs map[string]string
 
 // Set sets a custom argument arg must be a key-value pair in the format "key=value".
 func (c *CustomArgs) Set(arg string) error {
-	kv := strings.SplitN(arg, "=", 2)
-	if len(kv) != 2 {
+	k, v, ok := strings.Cut(arg, "=")
+	if !ok {
 		return fmt.Errorf("invalid custom argument %q, must be in the format key=value", arg)
 	}
-	(*c)[kv[0]] = kv[1]
+	(*c)[k] = v
 	return nil
 }
 
