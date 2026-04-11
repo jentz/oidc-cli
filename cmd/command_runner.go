@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"flag"
@@ -14,6 +15,17 @@ import (
 	"github.com/jentz/oidc-cli/log"
 	"github.com/jentz/oidc-cli/oidc"
 )
+
+func readTokenFromStdin(r io.Reader, label string) (string, error) {
+	scanner := bufio.NewScanner(r)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+		return "", fmt.Errorf("no %s provided on stdin", label)
+	}
+	return scanner.Text(), nil
+}
 
 type CommandRunner interface {
 	Run(ctx context.Context) error

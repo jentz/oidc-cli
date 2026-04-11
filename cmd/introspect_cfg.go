@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"flag"
@@ -41,7 +40,6 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config, std
 		return nil, buf.String(), err
 	}
 
-	// populate custom args
 	if len(customArgs) > 0 {
 		if flowConf.CustomArgs == nil {
 			flowConf.CustomArgs = &httpclient.CustomArgs{}
@@ -55,14 +53,11 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config, std
 	}
 
 	if flowConf.Token == "-" {
-		scanner := bufio.NewScanner(stdin)
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				return nil, buf.String(), err
-			}
-			return nil, buf.String(), errors.New("no token provided on stdin")
+		token, err := readTokenFromStdin(stdin, "token")
+		if err != nil {
+			return nil, buf.String(), err
 		}
-		flowConf.Token = scanner.Text()
+		flowConf.Token = token
 	}
 
 	var invalidArgsChecks = []struct {
