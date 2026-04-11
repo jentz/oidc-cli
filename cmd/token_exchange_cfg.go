@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"flag"
@@ -46,14 +45,11 @@ func parseTokenExchangeFlags(name string, args []string, oidcConf *oidc.Config, 
 	}
 
 	if flowConf.SubjectToken == "-" {
-		scanner := bufio.NewScanner(stdin)
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				return nil, buf.String(), err
-			}
-			return nil, buf.String(), errors.New("no subject token provided on stdin")
+		token, err := readTokenFromStdin(stdin, "subject token")
+		if err != nil {
+			return nil, buf.String(), err
 		}
-		flowConf.SubjectToken = scanner.Text()
+		flowConf.SubjectToken = token
 	}
 
 	var invalidArgsChecks = []struct {

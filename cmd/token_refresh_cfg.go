@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"flag"
@@ -40,14 +39,11 @@ func parseTokenRefreshFlags(name string, args []string, oidcConf *oidc.Config, s
 	}
 
 	if flowConf.RefreshToken == "-" {
-		scanner := bufio.NewScanner(stdin)
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				return nil, buf.String(), err
-			}
-			return nil, buf.String(), errors.New("no refresh token provided on stdin")
+		token, err := readTokenFromStdin(stdin, "refresh token")
+		if err != nil {
+			return nil, buf.String(), err
 		}
-		flowConf.RefreshToken = scanner.Text()
+		flowConf.RefreshToken = token
 	}
 
 	var invalidArgsChecks = []struct {

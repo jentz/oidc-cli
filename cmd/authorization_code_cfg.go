@@ -64,7 +64,6 @@ func parseAuthorizationCodeFlags(name string, args []string, oidcConf *oidc.Conf
 		return nil, buf.String(), err
 	}
 
-	// populate custom args
 	if len(customArgs) > 0 {
 		if flowConf.CustomArgs == nil {
 			flowConf.CustomArgs = &httpclient.CustomArgs{}
