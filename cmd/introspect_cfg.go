@@ -60,6 +60,7 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config, std
 			if err := scanner.Err(); err != nil {
 				return nil, buf.String(), err
 			}
+			return nil, buf.String(), errors.New("no token provided on stdin")
 		}
 		flowConf.Token = scanner.Text()
 	}
