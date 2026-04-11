@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,9 +19,17 @@ import (
 
 // mockListener is a mock net.Listener for testing server startup.
 type mockListener struct {
-	closed    bool
+	closeOnce sync.Once
+	closed    chan struct{}
 	acceptErr error
 	ctx       context.Context // Context to control Accept blocking
+}
+
+func newMockListener(ctx context.Context) *mockListener {
+	return &mockListener{
+		closed: make(chan struct{}),
+		ctx:    ctx,
+	}
 }
 
 func (m *mockListener) Accept() (net.Conn, error) {
@@ -33,7 +42,7 @@ func (m *mockListener) Accept() (net.Conn, error) {
 }
 
 func (m *mockListener) Close() error {
-	m.closed = true
+	m.closeOnce.Do(func() { close(m.closed) })
 	return nil
 }
 
@@ -70,9 +79,8 @@ func TestCallbackServerStart(t *testing.T) {
 		t.Skipf("Skipping due to template parsing error: %v", err)
 	}
 
-	// Create a context for the listener
 	ctx, cancel := context.WithCancel(context.Background())
-	listener := &mockListener{ctx: ctx}
+	listener := newMockListener(ctx)
 	s.listen = func(_, addr string) (net.Listener, error) {
 		if addr != "localhost:8080" {
 			return nil, fmt.Errorf("expected addr localhost:8080, got %s", addr)
@@ -80,23 +88,25 @@ func TestCallbackServerStart(t *testing.T) {
 		return listener, nil
 	}
 
-	// Start server in a goroutine
+	startErr := make(chan error, 1)
 	go func() {
-		if err := s.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			t.Errorf("Start failed: %v", err)
-		}
+		startErr <- s.Start(ctx)
 	}()
 
-	// Wait briefly to ensure server starts
-	time.Sleep(100 * time.Millisecond)
-
-	// Cancel context to trigger shutdown
 	cancel()
 
-	// Wait for shutdown
-	time.Sleep(100 * time.Millisecond)
+	select {
+	case err := <-startErr:
+		if err != nil && !errors.Is(err, context.Canceled) {
+			t.Errorf("Start failed: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Start did not return after context cancellation")
+	}
 
-	if !listener.closed {
+	select {
+	case <-listener.closed:
+	case <-time.After(2 * time.Second):
 		t.Error("listener was not closed after shutdown")
 	}
 }
