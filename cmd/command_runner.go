@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"slices"
@@ -21,7 +22,7 @@ type CommandRunner interface {
 type Command struct {
 	Name      string
 	Help      string
-	Configure func(name string, args []string, cfg *oidc.Config) (config CommandRunner, output string, err error)
+	Configure func(name string, args []string, cfg *oidc.Config, stdin io.Reader) (config CommandRunner, output string, err error)
 }
 
 var commands = []Command{
@@ -35,7 +36,7 @@ var commands = []Command{
 	{Name: "help", Help: "Show help for oidc-cli or a specific command."},
 }
 
-func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log.Logger) int {
+func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log.Logger, stdin io.Reader) int {
 	cmdIdx := slices.IndexFunc(commands, func(cmd Command) bool {
 		return cmd.Name == name
 	})
@@ -57,7 +58,7 @@ func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log
 		return ExitOK
 	}
 
-	command, output, err := cmd.Configure(name, args, globalConf)
+	command, output, err := cmd.Configure(name, args, globalConf, stdin)
 	if errors.Is(err, flag.ErrHelp) {
 		logger.Outputln(output)
 		return ExitHelp

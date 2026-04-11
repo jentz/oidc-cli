@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"io"
 
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func parseClientCredentialsFlags(name string, args []string, oidcConf *oidc.Config) (runner CommandRunner, output string, err error) {
+func parseClientCredentialsFlags(name string, args []string, oidcConf *oidc.Config, _ io.Reader) (runner CommandRunner, output string, err error) {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)

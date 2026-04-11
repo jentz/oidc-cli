@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"os"
 
 	"github.com/jentz/oidc-cli/log"
 )
@@ -44,7 +45,7 @@ func CLI(args []string, logOptions ...log.Option) int {
 
 	subCmd := args[0]
 	subCmdArgs := args[1:]
-	return RunCommand(subCmd, subCmdArgs, globalConf, logger)
+	return RunCommand(subCmd, subCmdArgs, globalConf, logger, os.Stdin)
 }
 
 func usage(logger *log.Logger, flags ...*flag.FlagSet) {
