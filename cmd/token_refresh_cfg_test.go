@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"flag"
-	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/jentz/oidc-cli/oidc"
@@ -89,7 +89,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{})
+			runner, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -178,7 +178,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{})
+			_, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
@@ -220,25 +220,6 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save original stdin
-			originalStdin := os.Stdin
-			defer func() { os.Stdin = originalStdin }()
-
-			// Create pipe to simulate stdin
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Fatalf("Failed to create pipe: %v", err)
-			}
-			os.Stdin = r
-
-			// Write test input to pipe
-			go func() {
-				defer func() { _ = w.Close() }()
-				if tt.input != "" {
-					_, _ = w.WriteString(tt.input)
-				}
-			}()
-
 			args := []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
@@ -246,7 +227,7 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 				"--refresh-token", "-", // This triggers stdin reading
 			}
 
-			runner, output, err := parseTokenRefreshFlags("token_refresh", args, &oidc.Config{})
+			runner, output, err := parseTokenRefreshFlags("token_refresh", args, &oidc.Config{}, strings.NewReader(tt.input))
 
 			if tt.expectError {
 				if err == nil {
@@ -278,20 +259,7 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 }
 
 func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
-	// Save original stdin
-	originalStdin := os.Stdin
-	defer func() { os.Stdin = originalStdin }()
-
 	expectedError := "no refresh token provided on stdin"
-
-	// Test the EOF case (no input) - this should return flag.ErrHelp
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("Failed to create pipe: %v", err)
-	}
-	_ = w.Close() // Close write end immediately to simulate EOF
-	os.Stdin = r
-	defer func() { _ = r.Close() }()
 
 	args := []string{
 		"--issuer", "https://example.com",
@@ -300,7 +268,7 @@ func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
 		"--refresh-token", "-", // This triggers stdin reading
 	}
 
-	_, _, err = parseTokenRefreshFlags("token_refresh", args, &oidc.Config{})
+	_, _, err := parseTokenRefreshFlags("token_refresh", args, &oidc.Config{}, strings.NewReader(""))
 	if err == nil {
 		t.Error("expected error from empty stdin, got nil")
 	}

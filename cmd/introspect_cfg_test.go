@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/jentz/oidc-cli/oidc"
@@ -88,7 +89,7 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{})
+			runner, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -141,7 +142,7 @@ func TestParseIntrospectFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{})
+			_, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
@@ -149,6 +150,91 @@ func TestParseIntrospectFlagsError(t *testing.T) {
 				t.Errorf("output got empty, want error message")
 			}
 		})
+	}
+}
+
+func TestParseIntrospectFlagsStdin(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectError   bool
+		expectedToken string
+	}{
+		{
+			name:          "successful stdin read",
+			input:         "test-token\n",
+			expectError:   false,
+			expectedToken: "test-token",
+		},
+		{
+			name:        "empty input (EOF)",
+			input:       "",
+			expectError: true,
+		},
+		{
+			name:          "whitespace only input",
+			input:         "   \n",
+			expectError:   false,
+			expectedToken: "   ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := []string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--client-secret", "client-secret",
+				"--token", "-", // This triggers stdin reading
+			}
+
+			runner, output, err := parseIntrospectFlags("introspect", args, &oidc.Config{}, strings.NewReader(tt.input))
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if output != "" {
+				t.Errorf("output got %q, want empty", output)
+			}
+
+			f, ok := runner.(*oidc.IntrospectFlow)
+			if !ok {
+				t.Errorf("unexpected runner type: %T", runner)
+				return
+			}
+
+			if f.FlowConfig.Token != tt.expectedToken {
+				t.Errorf("Token got %q, want %q", f.FlowConfig.Token, tt.expectedToken)
+			}
+		})
+	}
+}
+
+func TestParseIntrospectFlagsStdinError(t *testing.T) {
+	expectedError := "no token provided on stdin"
+
+	args := []string{
+		"--issuer", "https://example.com",
+		"--client-id", "client-id",
+		"--client-secret", "client-secret",
+		"--token", "-", // This triggers stdin reading
+	}
+
+	_, _, err := parseIntrospectFlags("introspect", args, &oidc.Config{}, strings.NewReader(""))
+	if err == nil {
+		t.Error("expected error from empty stdin, got nil")
+	}
+	if err.Error() != expectedError {
+		t.Errorf("expected error message %v, got %v", expectedError, err)
 	}
 }
 
@@ -161,7 +247,7 @@ func TestParseIntrospectFlagsCustomArgs(t *testing.T) {
 		"--custom", "foo=bar",
 		"--custom", "baz=qux",
 	}
-	runner, output, err := parseIntrospectFlags("introspect", testArgs, &oidc.Config{})
+	runner, output, err := parseIntrospectFlags("introspect", testArgs, &oidc.Config{}, strings.NewReader(""))
 	if err != nil {
 		t.Fatalf("err got %v, want nil", err)
 	}

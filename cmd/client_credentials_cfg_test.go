@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/jentz/oidc-cli/oidc"
@@ -77,7 +78,7 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{})
+			runner, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -122,7 +123,7 @@ func TestParseClientCredentialsFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{})
+			_, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
