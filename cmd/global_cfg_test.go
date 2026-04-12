@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/jentz/oidc-cli/log"
 	"github.com/jentz/oidc-cli/oidc"
 )
 
@@ -13,7 +14,6 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 		name          string
 		args          []string
 		oidcConf      oidc.Config
-		wantVerbose   bool
 		remainingArgs []string
 	}{
 		{
@@ -61,7 +61,6 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
-			wantVerbose:   true,
 			remainingArgs: []string{},
 		},
 		{
@@ -85,19 +84,25 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			oidcConf, flagSet, verbose, err := parseGlobalFlags("global", tt.args)
+			logger := log.Discard()
+			oidcConf, flagSet, err := initGlobalConfig(tt.args, logger)
 			remainingArgs := flagSet.Args()
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
 
+			if oidcConf.Logger != logger {
+				t.Error("expected Logger to be the injected instance")
+			}
+			if oidcConf.Client == nil {
+				t.Error("expected Client to be set")
+			}
+
 			gotConf := *oidcConf
-			gotConf.Logger = nil // Logger is set by NewConfig(), not by flag parsing
+			gotConf.Logger = nil
+			gotConf.Client = nil
 			if !reflect.DeepEqual(gotConf, tt.oidcConf) {
 				t.Errorf("Config got %+v, want %+v", gotConf, tt.oidcConf)
-			}
-			if verbose != tt.wantVerbose {
-				t.Errorf("verbose got %v, want %v", verbose, tt.wantVerbose)
 			}
 			if !reflect.DeepEqual(remainingArgs, tt.remainingArgs) {
 				t.Errorf("remainingArgs got %v, want %v", remainingArgs, tt.remainingArgs)
