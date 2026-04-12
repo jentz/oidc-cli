@@ -204,8 +204,8 @@ func TestCallbackServerHandleCallback(t *testing.T) {
 			query:          "code=abc123",
 			successTmpl:    template.Must(template.New("success").Parse("<p>Success: {{.InvalidField}}</p>")), // Invalid field
 			errorTmpl:      template.Must(template.New("error").Parse("<p>Error: {{.ErrorMsg}}</p>")),
-			wantStatus:     http.StatusOK,
-			wantBody:       "<p>Success: Internal Server Error\n",
+			wantStatus:     http.StatusInternalServerError,
+			wantBody:       "Internal Server Error\n",
 			wantLogMessage: "failed to execute template",
 		},
 		{

@@ -2,6 +2,7 @@ package webflow
 
 import (
 	"context"
+	"bytes"
 	"embed"
 	"errors"
 	"fmt"
@@ -117,6 +118,7 @@ func (s *CallbackServer) WaitForCallback(ctx context.Context) (*CallbackResponse
 func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) {
 	var resp CallbackResponse
 	var tmpl *template.Template
+	var status int
 
 	resp.Code = r.URL.Query().Get("code")
 	resp.State = r.URL.Query().Get("state")
@@ -125,22 +127,26 @@ func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) 
 
 	if resp.Code == "" {
 		tmpl = s.errorTmpl
-		w.WriteHeader(http.StatusBadRequest)
+		status = http.StatusBadRequest
 	} else {
 		tmpl = s.successTmpl
-		w.WriteHeader(http.StatusOK)
+		status = http.StatusOK
 	}
 
-	if err := tmpl.Execute(w, resp); err != nil {
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, resp); err != nil {
 		s.logger.Errorf("failed to execute template: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
+	w.WriteHeader(status)
+	if _, err := buf.WriteTo(w); err != nil {
+		s.logger.Errorf("failed to write response: %v", err)
+	}
+
 	select {
 	case s.response <- &resp:
-		// Successfully sent the response
 	default:
 		s.logger.Errorf("callback response channel is full, dropping response")
 	}
