@@ -6,6 +6,7 @@ import (
 )
 
 func TestGeneratePKCECodeVerifier(t *testing.T) {
+	t.Parallel()
 	verifier, err := GeneratePKCECodeVerifier()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -22,6 +23,7 @@ func TestGeneratePKCECodeVerifier(t *testing.T) {
 }
 
 func TestGeneratePKCECodeChallenge(t *testing.T) {
+	t.Parallel()
 	verifier := "testverifier"
 	challenge := GeneratePKCECodeChallenge(verifier)
 	// SHA256 output is 32 bytes, base64url-encoded is 43 chars (no padding)

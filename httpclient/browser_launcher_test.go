@@ -18,6 +18,7 @@ func (m *MockBrowser) Open(url string) error {
 }
 
 func TestDefaultBrowserLauncher_OpenURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		url        string
@@ -60,6 +61,7 @@ func TestDefaultBrowserLauncher_OpenURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockBrowser := &MockBrowser{openFunc: tt.mockOpen}
 			launcher := NewDefaultBrowserLauncherWithBrowser(mockBrowser)
 
@@ -83,11 +85,13 @@ func TestDefaultBrowserLauncher_OpenURL(t *testing.T) {
 	}
 }
 
-func TestDefaultBrowserLauncher_Interface(_ *testing.T) {
+func TestDefaultBrowserLauncher_Interface(t *testing.T) {
+	t.Parallel()
 	var _ BrowserLauncher = (*DefaultBrowserLauncher)(nil)
 }
 
 func TestNewDefaultBrowserLauncher(t *testing.T) {
+	t.Parallel()
 	launcher := NewDefaultBrowserLauncher()
 	if launcher == nil {
 		t.Error("NewDefaultBrowserLauncher() returned nil")
@@ -99,6 +103,7 @@ func TestNewDefaultBrowserLauncher(t *testing.T) {
 }
 
 func TestNewDefaultBrowserLauncherWithBrowser(t *testing.T) {
+	t.Parallel()
 	mockBrowser := &MockBrowser{}
 	launcher := NewDefaultBrowserLauncherWithBrowser(mockBrowser)
 

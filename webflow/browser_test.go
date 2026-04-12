@@ -9,6 +9,7 @@ import (
 
 // TestSystemBrowserOpen tests the Open method for various platforms and scenarios.
 func TestSystemBrowserOpen(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		url             string
@@ -63,6 +64,7 @@ func TestSystemBrowserOpen(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Set up RunCmd based on test case
 			var mockRunCmd func(prog string, args ...string) error
 			switch tt.name {
@@ -110,6 +112,7 @@ func TestSystemBrowserOpen(t *testing.T) {
 }
 
 func TestNewBrowser(t *testing.T) {
+	t.Parallel()
 	b := NewBrowser()
 	if b == nil {
 		t.Fatal("NewBrowser returned nil")
@@ -120,6 +123,7 @@ func TestNewBrowser(t *testing.T) {
 }
 
 func TestNewSystemBrowser(t *testing.T) {
+	t.Parallel()
 	b := NewSystemBrowser()
 	if b == nil {
 		t.Fatal("NewSystemBrowser returned nil")
@@ -133,6 +137,7 @@ func TestNewSystemBrowser(t *testing.T) {
 }
 
 func TestSystemBrowserDefaultRunCmd(t *testing.T) {
+	t.Parallel()
 	b := &SystemBrowser{
 		OpenBrowser: func(url string, runCmd func(string, ...string) error) error {
 			return runCmd("mythical-command", url)

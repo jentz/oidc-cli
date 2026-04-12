@@ -10,6 +10,7 @@ import (
 )
 
 func TestParseTokenExchangeFlagsResult(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name     string
 		args     []string
@@ -77,6 +78,7 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runner, output, err := parseTokenExchangeFlags("token_exchange", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
@@ -99,6 +101,7 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 }
 
 func TestParseTokenExchangeFlagsError(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name          string
 		args          []string
@@ -175,6 +178,7 @@ func TestParseTokenExchangeFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, output, err := parseTokenExchangeFlags("token_exchange", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")
@@ -190,6 +194,7 @@ func TestParseTokenExchangeFlagsError(t *testing.T) {
 }
 
 func TestParseTokenExchangeFlagsStdin(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		input         string
@@ -217,6 +222,7 @@ func TestParseTokenExchangeFlagsStdin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			args := []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
@@ -257,6 +263,7 @@ func TestParseTokenExchangeFlagsStdin(t *testing.T) {
 }
 
 func TestParseTokenExchangeFlagsStdinError(t *testing.T) {
+	t.Parallel()
 	expectedError := "no subject token provided on stdin"
 
 	args := []string{

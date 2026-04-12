@@ -14,13 +14,7 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	// Since we can't directly check internal fields without exposing them,
-	// we'll test behavior instead using a mock server.
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("test response"))
-	}))
-	defer ts.Close()
-
+	t.Parallel()
 	tests := []struct {
 		name          string
 		cfg           *Config
@@ -53,6 +47,7 @@ func TestNewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create a test server that sleeps for the specified time
 			sleepServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				time.Sleep(tt.serverDelay)
@@ -77,13 +72,15 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestTLSSkipVerify(t *testing.T) {
+	t.Parallel()
 	// Create a server with a self-signed cert
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("secure response"))
 	}))
-	defer ts.Close()
+	t.Cleanup(ts.Close)
 
 	t.Run("Skips TLS verification when configured", func(t *testing.T) {
+		t.Parallel()
 		client := NewClient(&Config{SkipTLSVerify: true})
 		_, err := client.Get(context.Background(), ts.URL, nil)
 		if err != nil {
@@ -92,6 +89,7 @@ func TestTLSSkipVerify(t *testing.T) {
 	})
 
 	t.Run("Fails on invalid cert by default", func(t *testing.T) {
+		t.Parallel()
 		client := NewClient(nil) // Default config
 		_, err := client.Get(context.Background(), ts.URL, nil)
 		if err == nil {
@@ -101,6 +99,7 @@ func TestTLSSkipVerify(t *testing.T) {
 }
 
 func TestCustomTransport(t *testing.T) {
+	t.Parallel()
 	// Test that a custom is transport respected
 	customTransport := &http.Transport{
 		MaxIdleConns: 100,
@@ -128,6 +127,7 @@ func TestCustomTransport(t *testing.T) {
 }
 
 func TestPost(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("Expected POST method, got %s", r.Method)
@@ -161,6 +161,7 @@ func TestPost(t *testing.T) {
 }
 
 func TestPostForm(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("Expected POST method, got %s", r.Method)
@@ -203,6 +204,7 @@ func TestPostForm(t *testing.T) {
 }
 
 func TestPostJSON(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("Expected POST method, got %s", r.Method)
@@ -258,6 +260,7 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestPostJSON_MarshalError(t *testing.T) {
+	t.Parallel()
 	client := NewClient(nil)
 
 	// Use a function as data, which cannot be marshaled to JSON
@@ -270,6 +273,7 @@ func TestPostJSON_MarshalError(t *testing.T) {
 }
 
 func TestResponseMethods(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -314,6 +318,7 @@ func TestResponseMethods(t *testing.T) {
 }
 
 func TestResponseJSON_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("invalid json"))
@@ -334,6 +339,7 @@ func TestResponseJSON_InvalidJSON(t *testing.T) {
 }
 
 func TestResponseIsSuccess(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		statusCode int
@@ -349,6 +355,7 @@ func TestResponseIsSuccess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				_, _ = w.Write([]byte("test"))
@@ -370,6 +377,7 @@ func TestResponseIsSuccess(t *testing.T) {
 }
 
 func TestDo_InvalidURL(t *testing.T) {
+	t.Parallel()
 	client := NewClient(nil)
 	_, err := client.Do(context.Background(), http.MethodGet, "://invalid-url", nil, nil)
 	if err == nil {
@@ -378,6 +386,7 @@ func TestDo_InvalidURL(t *testing.T) {
 }
 
 func TestDo_ContextCanceled(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		time.Sleep(50 * time.Millisecond)
 		_, _ = w.Write([]byte("delayed response"))
@@ -398,6 +407,7 @@ func TestDo_ContextCanceled(t *testing.T) {
 
 // Test that verifies response body close error propagation works correctly
 func TestDo_ResponseBodyCloseError(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns a response with a body that fails to close
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

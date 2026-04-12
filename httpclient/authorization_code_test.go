@@ -10,6 +10,7 @@ import (
 )
 
 func TestCreateAuthorizationCodeRequestValues(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		req        *AuthorizationCodeRequest
@@ -97,6 +98,7 @@ func TestCreateAuthorizationCodeRequestValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			values, err := CreateAuthorizationCodeRequestValues(tt.req)
 
 			if tt.wantErr {
@@ -127,6 +129,7 @@ func TestCreateAuthorizationCodeRequestValues(t *testing.T) {
 }
 
 func TestCreateAuthorizationCodeRequestURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		endpoint string
@@ -181,6 +184,7 @@ func TestCreateAuthorizationCodeRequestURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gotURL, err := CreateAuthorizationCodeRequestURL(tt.endpoint, tt.values)
 
 			if tt.wantErr {
@@ -237,6 +241,7 @@ func TestCreateAuthorizationCodeRequestURL(t *testing.T) {
 }
 
 func TestExecuteAuthorizationCodeRequest_BasicValidation(t *testing.T) {
+	t.Parallel()
 	// Test basic parameter validation without actually executing the flow
 	client := NewClient(nil)
 	ctx := context.Background()
@@ -258,6 +263,7 @@ func TestExecuteAuthorizationCodeRequest_BasicValidation(t *testing.T) {
 }
 
 func TestStateValidationLogic(t *testing.T) {
+	t.Parallel()
 	// Test the state validation logic by simulating various callback scenarios
 	tests := []struct {
 		name             string
@@ -319,6 +325,7 @@ func TestStateValidationLogic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Simulate the state validation logic from ExecuteAuthorizationCodeRequest
 			req := &AuthorizationCodeRequest{
 				ClientID: "test-client",

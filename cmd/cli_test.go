@@ -14,7 +14,7 @@ func resetFlags() {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 }
 
-func TestCLI_HelpFlag(t *testing.T) {
+func TestCLI_HelpFlag(t *testing.T) { //nolint:paralleltest // mutates global flag.CommandLine
 	resetFlags()
 	var out bytes.Buffer
 	code := CLI([]string{"--help"}, log.WithOutput(&out, &out))
@@ -29,7 +29,7 @@ func TestCLI_HelpFlag(t *testing.T) {
 	}
 }
 
-func TestCLI_NoArgs(t *testing.T) {
+func TestCLI_NoArgs(t *testing.T) { //nolint:paralleltest // mutates global flag.CommandLine
 	resetFlags()
 	var out bytes.Buffer
 	code := CLI([]string{}, log.WithOutput(&out, &out))
@@ -41,7 +41,7 @@ func TestCLI_NoArgs(t *testing.T) {
 	}
 }
 
-func TestCLI_UnknownCommand(t *testing.T) {
+func TestCLI_UnknownCommand(t *testing.T) { //nolint:paralleltest // mutates global flag.CommandLine
 	resetFlags()
 	var out bytes.Buffer
 	code := CLI([]string{"unknowncmd"}, log.WithOutput(&out, &out))
@@ -53,7 +53,7 @@ func TestCLI_UnknownCommand(t *testing.T) {
 	}
 }
 
-func TestCLI_VersionCommand(t *testing.T) {
+func TestCLI_VersionCommand(t *testing.T) { //nolint:paralleltest // mutates global flag.CommandLine
 	resetFlags()
 	var out bytes.Buffer
 	code := CLI([]string{"version"}, log.WithOutput(&out, &out))

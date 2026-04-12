@@ -10,6 +10,7 @@ import (
 )
 
 func TestExecutePushedAuthorizationRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		req        *PushedAuthorizationRequest
@@ -89,6 +90,7 @@ func TestExecutePushedAuthorizationRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost {
 					t.Errorf("Expected POST method, got %s", r.Method)
@@ -145,6 +147,7 @@ func TestExecutePushedAuthorizationRequest(t *testing.T) {
 }
 
 func TestParsePushedAuthorizationResponse(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		statusCode int
@@ -219,6 +222,7 @@ func TestParsePushedAuthorizationResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			resp := &Response{
 				StatusCode: tt.statusCode,
 				Body:       []byte(tt.body),
@@ -259,6 +263,7 @@ func TestParsePushedAuthorizationResponse(t *testing.T) {
 }
 
 func TestPushedAuthorizationRequest_Integration(t *testing.T) {
+	t.Parallel()
 	// Integration test that combines ExecutePushedAuthorizationRequest and ParsePushedAuthorizationResponse
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()

@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseIntrospectFlagsResult(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name     string
 		args     []string
@@ -89,6 +90,7 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runner, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
@@ -111,6 +113,7 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 }
 
 func TestParseIntrospectFlagsError(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name string
 		args []string
@@ -142,6 +145,7 @@ func TestParseIntrospectFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")
@@ -154,6 +158,7 @@ func TestParseIntrospectFlagsError(t *testing.T) {
 }
 
 func TestParseIntrospectFlagsStdin(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		input         string
@@ -181,6 +186,7 @@ func TestParseIntrospectFlagsStdin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			args := []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
@@ -220,6 +226,7 @@ func TestParseIntrospectFlagsStdin(t *testing.T) {
 }
 
 func TestParseIntrospectFlagsStdinError(t *testing.T) {
+	t.Parallel()
 	expectedError := "no token provided on stdin"
 
 	args := []string{
@@ -239,6 +246,7 @@ func TestParseIntrospectFlagsStdinError(t *testing.T) {
 }
 
 func TestParseIntrospectFlagsCustomArgs(t *testing.T) {
+	t.Parallel()
 	testArgs := []string{
 		"--issuer", "https://example.com",
 		"--client-id", "client-id",

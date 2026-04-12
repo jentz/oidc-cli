@@ -8,6 +8,7 @@ import (
 )
 
 func TestParseGlobalFlagsResult(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name          string
 		args          []string
@@ -83,6 +84,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			oidcConf, flagSet, verbose, err := parseGlobalFlags("global", tt.args)
 			remainingArgs := flagSet.Args()
 			if err != nil {

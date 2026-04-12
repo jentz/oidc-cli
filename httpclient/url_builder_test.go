@@ -6,6 +6,7 @@ import (
 )
 
 func TestDefaultAuthorizationURLBuilder_BuildAuthorizationURL(t *testing.T) {
+	t.Parallel()
 	builder := &DefaultAuthorizationURLBuilder{}
 
 	tests := []struct {
@@ -76,6 +77,7 @@ func TestDefaultAuthorizationURLBuilder_BuildAuthorizationURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := builder.BuildAuthorizationURL(tt.endpoint, tt.req)
 
 			if tt.wantErr {
@@ -111,6 +113,7 @@ func TestDefaultAuthorizationURLBuilder_BuildAuthorizationURL(t *testing.T) {
 	}
 }
 
-func TestDefaultAuthorizationURLBuilder_Interface(_ *testing.T) {
+func TestDefaultAuthorizationURLBuilder_Interface(t *testing.T) {
+	t.Parallel()
 	var _ AuthorizationURLBuilder = (*DefaultAuthorizationURLBuilder)(nil)
 }

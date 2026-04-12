@@ -3,6 +3,7 @@ package httpclient
 import "testing"
 
 func TestCustomArgs_Set(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		args    CustomArgs
@@ -45,6 +46,7 @@ func TestCustomArgs_Set(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.args.Set(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CustomArgs.Set() error = %v, wantErr %v", err, tt.wantErr)
@@ -62,6 +64,7 @@ func TestCustomArgs_Set(t *testing.T) {
 }
 
 func TestAuthMethod_IsValid(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		method AuthMethod
@@ -76,6 +79,7 @@ func TestAuthMethod_IsValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := tt.method.IsValid()
 			if got != tt.want {
 				t.Errorf("AuthMethod.IsValid() = %v, want %v", got, tt.want)
@@ -85,6 +89,7 @@ func TestAuthMethod_IsValid(t *testing.T) {
 }
 
 func TestAuthMethod_String(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		method AuthMethod
@@ -97,6 +102,7 @@ func TestAuthMethod_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := tt.method.String()
 			if got != tt.want {
 				t.Errorf("AuthMethod.String() = %q, want %q", got, tt.want)
@@ -106,6 +112,7 @@ func TestAuthMethod_String(t *testing.T) {
 }
 
 func TestAuthMethod_Set(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		value   string
@@ -139,6 +146,7 @@ func TestAuthMethod_Set(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var method AuthMethod
 			err := method.Set(tt.value)
 			if (err != nil) != tt.wantErr {

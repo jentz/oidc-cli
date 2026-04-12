@@ -8,7 +8,7 @@ help:
 	@echo "\nUsage: make <target>\n"
 	@echo "Targets:"
 	@echo "  help     Show this help message"
-	@echo "  test     Run all Go tests (go test -v ./...)"
+	@echo "  test     Run all Go tests (go test -race -count=1 ./...)"
 	@echo "  build    Build the oidc-cli binary (go build -v -o $(BINARY))"
 	@echo "  lint     Run golangci-lint (uses .golangci.yaml config)"
 	@echo "  clean    Remove built binaries and test cache"
@@ -17,7 +17,7 @@ help:
 # Run all tests
 
 test:
-	go test ./...
+	go test -race -count=1 ./...
 
 # Build the binary
 
@@ -38,4 +38,4 @@ clean:
 # Run tests with coverage
 
 coverage:
-	go test -coverprofile=coverage.out -covermode=atomic ./...
+	go test -race -coverprofile=coverage.out -covermode=atomic ./...

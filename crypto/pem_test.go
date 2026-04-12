@@ -12,6 +12,7 @@ import (
 )
 
 func TestParsePublicKeyPEMBlock(t *testing.T) {
+	t.Parallel()
 	privateKeyRSA, _ := rsa.GenerateKey(rand.Reader, 2048)
 	publicKeyRSA := &privateKeyRSA.PublicKey
 	x509RSA, _ := x509.MarshalPKIXPublicKey(publicKeyRSA)
@@ -44,6 +45,7 @@ func TestParsePublicKeyPEMBlock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := ParsePublicKeyPEMBlock(tt.block)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParsePublicKeyPEMBlock() error = %v, wantErr %v", err, tt.wantErr)
@@ -53,6 +55,7 @@ func TestParsePublicKeyPEMBlock(t *testing.T) {
 }
 
 func TestParsePrivateKeyPEMBlock(t *testing.T) {
+	t.Parallel()
 	privateKeyRSA, _ := rsa.GenerateKey(rand.Reader, 2048)
 	x509RSAPKCS1 := x509.MarshalPKCS1PrivateKey(privateKeyRSA)
 	x509RSAPKCS8, _ := x509.MarshalPKCS8PrivateKey(privateKeyRSA)
@@ -89,6 +92,7 @@ func TestParsePrivateKeyPEMBlock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := ParsePrivateKeyPEMBlock(tt.block)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParsePrivateKeyPEMBlock() error = %v, wantErr %v", err, tt.wantErr)

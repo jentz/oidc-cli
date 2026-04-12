@@ -17,6 +17,7 @@ func setupTestLogger(verbose bool) (*Logger, *bytes.Buffer, *bytes.Buffer) {
 }
 
 func TestVerboseLogging(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		verbose bool
@@ -56,6 +57,7 @@ func TestVerboseLogging(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			logger, errBuf, outBuf := setupTestLogger(tt.verbose)
 			tt.logFunc(logger)
 
@@ -70,6 +72,7 @@ func TestVerboseLogging(t *testing.T) {
 }
 
 func TestErrorLogging(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		verbose bool // should not affect error logging
@@ -104,6 +107,7 @@ func TestErrorLogging(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			logger, errBuf, outBuf := setupTestLogger(tt.verbose)
 			tt.logFunc(logger)
 
@@ -118,6 +122,7 @@ func TestErrorLogging(t *testing.T) {
 }
 
 func TestOutputLogging(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		verbose bool // should not affect output logging
@@ -152,6 +157,7 @@ func TestOutputLogging(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			logger, errBuf, outBuf := setupTestLogger(tt.verbose)
 			tt.logFunc(logger)
 
@@ -166,6 +172,7 @@ func TestOutputLogging(t *testing.T) {
 }
 
 func TestVerboseOutputLogging(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		verbose bool
@@ -200,6 +207,7 @@ func TestVerboseOutputLogging(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			logger, errBuf, outBuf := setupTestLogger(tt.verbose)
 			tt.logFunc(logger)
 
@@ -214,7 +222,9 @@ func TestVerboseOutputLogging(t *testing.T) {
 }
 
 func TestFunctionalOptions(t *testing.T) {
+	t.Parallel()
 	t.Run("default logger", func(t *testing.T) {
+		t.Parallel()
 		logger := New()
 		if logger.verbose {
 			t.Error("default logger should not be verbose")
@@ -225,6 +235,7 @@ func TestFunctionalOptions(t *testing.T) {
 	})
 
 	t.Run("with verbose option", func(t *testing.T) {
+		t.Parallel()
 		logger := New(WithVerbose(true))
 		if !logger.verbose {
 			t.Error("logger should be verbose")
@@ -232,6 +243,7 @@ func TestFunctionalOptions(t *testing.T) {
 	})
 
 	t.Run("with custom writers", func(t *testing.T) {
+		t.Parallel()
 		var errBuf, outBuf bytes.Buffer
 		logger := New(WithOutput(&outBuf, &errBuf))
 
@@ -247,6 +259,7 @@ func TestFunctionalOptions(t *testing.T) {
 	})
 
 	t.Run("multiple options", func(t *testing.T) {
+		t.Parallel()
 		var errBuf, outBuf bytes.Buffer
 		logger := New(
 			WithVerbose(true),
@@ -267,6 +280,7 @@ func TestFunctionalOptions(t *testing.T) {
 }
 
 func TestDiscard(t *testing.T) {
+	t.Parallel()
 	logger := Discard()
 	if logger == nil {
 		t.Fatal("Discard() returned nil")
@@ -283,6 +297,7 @@ func TestDiscard(t *testing.T) {
 }
 
 func TestSetVerbose(t *testing.T) {
+	t.Parallel()
 	var errBuf bytes.Buffer
 	logger := New(WithVerbose(false), WithStderr(&errBuf))
 
@@ -306,6 +321,7 @@ func TestSetVerbose(t *testing.T) {
 }
 
 func TestComplexScenario(t *testing.T) {
+	t.Parallel()
 	// Test a realistic CLI scenario
 	logger, errBuf, outBuf := setupTestLogger(true)
 
