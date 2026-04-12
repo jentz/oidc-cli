@@ -79,7 +79,7 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runner, output, err := parseTokenExchangeFlags("token_exchange", tt.args, &oidc.Config{}, strings.NewReader(""))
+			runner, output, err := parseTokenExchangeFlags(ParseInput{Name: "token_exchange", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -179,7 +179,7 @@ func TestParseTokenExchangeFlagsError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, output, err := parseTokenExchangeFlags("token_exchange", tt.args, &oidc.Config{}, strings.NewReader(""))
+			_, output, err := parseTokenExchangeFlags(ParseInput{Name: "token_exchange", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
@@ -231,7 +231,7 @@ func TestParseTokenExchangeFlagsStdin(t *testing.T) {
 				"--subject-token-type", "subject-token-type",
 			}
 
-			runner, output, err := parseTokenExchangeFlags("token_exchange", args, &oidc.Config{}, strings.NewReader(tt.input))
+			runner, output, err := parseTokenExchangeFlags(ParseInput{Name: "token_exchange", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader(tt.input)})
 
 			if tt.expectError {
 				if err == nil {
@@ -274,7 +274,7 @@ func TestParseTokenExchangeFlagsStdinError(t *testing.T) {
 		"--subject-token-type", "subject-token-type",
 	}
 
-	_, _, err := parseTokenExchangeFlags("token_exchange", args, &oidc.Config{}, strings.NewReader(""))
+	_, _, err := parseTokenExchangeFlags(ParseInput{Name: "token_exchange", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 	if err == nil {
 		t.Error("expected error from empty stdin, got nil")
 	}

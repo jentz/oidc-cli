@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"flag"
-	"io"
 
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func parseDeviceFlags(name string, args []string, oidcConf *oidc.Config, _ io.Reader) (runner CommandRunner, output string, err error) {
-	flags := flag.NewFlagSet(name, flag.ContinueOnError)
+func parseDeviceFlags(in ParseInput) (runner CommandRunner, output string, err error) {
+	oidcConf := in.Conf
+	flags := flag.NewFlagSet(in.Name, flag.ContinueOnError)
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
@@ -36,7 +36,7 @@ func parseDeviceFlags(name string, args []string, oidcConf *oidc.Config, _ io.Re
 		FlowConfig: &flowConf,
 	}
 
-	err = flags.Parse(args)
+	err = flags.Parse(in.Args)
 	if err != nil {
 		return nil, buf.String(), err
 	}

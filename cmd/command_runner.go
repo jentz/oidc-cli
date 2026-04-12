@@ -31,10 +31,17 @@ type CommandRunner interface {
 	Run(ctx context.Context) error
 }
 
+type ParseInput struct {
+	Name  string
+	Args  []string
+	Conf  *oidc.Config
+	Stdin io.Reader
+}
+
 type Command struct {
 	Name      string
 	Help      string
-	Configure func(name string, args []string, cfg *oidc.Config, stdin io.Reader) (config CommandRunner, output string, err error)
+	Configure func(in ParseInput) (config CommandRunner, output string, err error)
 }
 
 var commands = []Command{
@@ -70,7 +77,12 @@ func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log
 		return ExitOK
 	}
 
-	command, output, err := cmd.Configure(name, args, globalConf, stdin)
+	command, output, err := cmd.Configure(ParseInput{
+		Name:  name,
+		Args:  args,
+		Conf:  globalConf,
+		Stdin: stdin,
+	})
 	if errors.Is(err, flag.ErrHelp) {
 		logger.Outputln(output)
 		return ExitHelp

@@ -141,7 +141,7 @@ func TestParseDeviceFlags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runner, output, err := parseDeviceFlags("device", tt.args, &oidc.Config{}, strings.NewReader(""))
+			runner, output, err := parseDeviceFlags(ParseInput{Name: "device", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -201,7 +201,7 @@ func TestParseDeviceFlagsError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, output, err := parseDeviceFlags("device", tt.args, &oidc.Config{}, strings.NewReader(""))
+			_, output, err := parseDeviceFlags(ParseInput{Name: "device", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}

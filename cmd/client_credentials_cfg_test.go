@@ -80,7 +80,7 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runner, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{}, strings.NewReader(""))
+			runner, output, err := parseClientCredentialsFlags(ParseInput{Name: "client_credentials", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -127,7 +127,7 @@ func TestParseClientCredentialsFlagsError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{}, strings.NewReader(""))
+			_, output, err := parseClientCredentialsFlags(ParseInput{Name: "client_credentials", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
