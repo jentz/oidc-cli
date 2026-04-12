@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-
-	"github.com/jentz/oidc-cli/log"
 )
 
 type AuthorizationCodeRequest struct {
@@ -114,12 +112,12 @@ func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint s
 	if err != nil {
 		return nil, err // Error already wrapped by URLBuilder
 	}
-	log.Printf("authorization request: %s\n", requestURL)
+	c.logger.Printf("authorization request: %s\n", requestURL)
 
 	// Open the URL in the browser
 	err = c.authDeps.BrowserLauncher.OpenURL(requestURL)
 	if err != nil {
-		log.Errorf("unable to open browser because %v, visit %s to continue\n", err, requestURL)
+		c.logger.Errorf("unable to open browser because %v, visit %s to continue\n", err, requestURL)
 	}
 
 	// Wait for the callback response

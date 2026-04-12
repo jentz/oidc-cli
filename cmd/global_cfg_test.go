@@ -12,90 +12,90 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 		name          string
 		args          []string
 		oidcConf      oidc.Config
+		wantVerbose   bool
 		remainingArgs []string
 	}{
 		{
-			"all flags",
-			[]string{
+			name: "all flags",
+			args: []string{
 				"--issuer", "https://example.com",
 				"--discovery-url", "https://example.com/.well-known/openid-configuration",
 				"--skip-tls-verify",
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 			},
-			oidc.Config{
+			oidcConf: oidc.Config{
 				IssuerURL:         "https://example.com",
 				DiscoveryEndpoint: "https://example.com/.well-known/openid-configuration",
 				ClientID:          "client-id",
 				ClientSecret:      "client-secret",
 				SkipTLSVerify:     true,
 			},
-			[]string{},
+			remainingArgs: []string{},
 		},
 		{
-			"only issuer",
-			[]string{
+			name: "only issuer",
+			args: []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 			},
-			oidc.Config{
-				IssuerURL:         "https://example.com",
-				DiscoveryEndpoint: "",
-				ClientID:          "client-id",
-				ClientSecret:      "client-secret",
+			oidcConf: oidc.Config{
+				IssuerURL:    "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
 			},
-			[]string{},
+			remainingArgs: []string{},
 		},
 		{
-			"verbose flag",
-			[]string{
+			name: "verbose flag",
+			args: []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 				"--verbose",
 			},
-			oidc.Config{
-				IssuerURL:         "https://example.com",
-				DiscoveryEndpoint: "",
-				ClientID:          "client-id",
-				ClientSecret:      "client-secret",
+			oidcConf: oidc.Config{
+				IssuerURL:    "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
 			},
-			[]string{},
+			wantVerbose:   true,
+			remainingArgs: []string{},
 		},
 		{
-			"flags after non-flag argument",
-			[]string{
+			name: "flags after non-flag argument",
+			args: []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 				"non-flag-argument",
 				"--skip-tls-verify",
 			},
-			oidc.Config{
-				IssuerURL:         "https://example.com",
-				DiscoveryEndpoint: "",
-				ClientID:          "client-id",
-				ClientSecret:      "client-secret",
-				SkipTLSVerify:     false, // expecting default value as argument is not parsed
+			oidcConf: oidc.Config{
+				IssuerURL:    "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
 			},
-			[]string{"non-flag-argument", "--skip-tls-verify"},
+			remainingArgs: []string{"non-flag-argument", "--skip-tls-verify"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oidcConf, flagSet, err := parseGlobalFlags("global", tt.args)
+			oidcConf, flagSet, verbose, err := parseGlobalFlags("global", tt.args)
 			remainingArgs := flagSet.Args()
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
 
 			gotConf := *oidcConf
-			gotConf.Client = nil // Ignore client in comparison
-
+			gotConf.Logger = nil // Logger is set by NewConfig(), not by flag parsing
 			if !reflect.DeepEqual(gotConf, tt.oidcConf) {
 				t.Errorf("Config got %+v, want %+v", gotConf, tt.oidcConf)
+			}
+			if verbose != tt.wantVerbose {
+				t.Errorf("verbose got %v, want %v", verbose, tt.wantVerbose)
 			}
 			if !reflect.DeepEqual(remainingArgs, tt.remainingArgs) {
 				t.Errorf("remainingArgs got %v, want %v", remainingArgs, tt.remainingArgs)

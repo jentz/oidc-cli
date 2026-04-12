@@ -14,13 +14,8 @@ func resetFlags() {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 }
 
-func resetLogger() {
-	log.SetDefaultLogger(log.WithVerbose(false))
-}
-
 func TestCLI_HelpFlag(t *testing.T) {
 	resetFlags()
-	resetLogger()
 	var out bytes.Buffer
 	code := CLI([]string{"--help"}, log.WithOutput(&out, &out))
 	if code != ExitHelp {
@@ -36,7 +31,6 @@ func TestCLI_HelpFlag(t *testing.T) {
 
 func TestCLI_NoArgs(t *testing.T) {
 	resetFlags()
-	resetLogger()
 	var out bytes.Buffer
 	code := CLI([]string{}, log.WithOutput(&out, &out))
 	if code != ExitError {
@@ -49,7 +43,6 @@ func TestCLI_NoArgs(t *testing.T) {
 
 func TestCLI_UnknownCommand(t *testing.T) {
 	resetFlags()
-	resetLogger()
 	var out bytes.Buffer
 	code := CLI([]string{"unknowncmd"}, log.WithOutput(&out, &out))
 	if code != ExitError {
@@ -62,7 +55,6 @@ func TestCLI_UnknownCommand(t *testing.T) {
 
 func TestCLI_VersionCommand(t *testing.T) {
 	resetFlags()
-	resetLogger()
 	var out bytes.Buffer
 	code := CLI([]string{"version"}, log.WithOutput(&out, &out))
 	if code != ExitOK {

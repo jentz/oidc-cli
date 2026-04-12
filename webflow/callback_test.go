@@ -52,7 +52,7 @@ func (m *mockListener) Addr() net.Addr {
 
 func TestNewCallbackServer(t *testing.T) {
 	// Skip if template files are missing (real files needed for embed.FS)
-	s, err := NewCallbackServer("http://localhost:8080/callback")
+	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		if strings.Contains(err.Error(), "failed to parse") {
 			t.Skipf("Skipping due to missing template files: %v", err)
@@ -74,7 +74,7 @@ func TestNewCallbackServer(t *testing.T) {
 }
 
 func TestCallbackServerStart(t *testing.T) {
-	s, err := NewCallbackServer("http://localhost:8080/callback")
+	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		t.Skipf("Skipping due to template parsing error: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestCallbackServerStart(t *testing.T) {
 }
 
 func TestCallbackServerStartListenError(t *testing.T) {
-	s, err := NewCallbackServer("http://localhost:8080/callback")
+	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		t.Skipf("Skipping due to template parsing error: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestCallbackServerStartListenError(t *testing.T) {
 }
 
 func TestCallbackServerWaitForCallback(t *testing.T) {
-	s, err := NewCallbackServer("http://localhost:8080/callback")
+	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		t.Skipf("Skipping due to template parsing error: %v", err)
 	}
@@ -157,10 +157,6 @@ func TestCallbackServerWaitForCallback(t *testing.T) {
 }
 
 func TestCallbackServerHandleCallback(t *testing.T) {
-	// Set up logger to capture output
-	var logBuf bytes.Buffer
-	log.SetDefaultLogger(log.WithVerbose(true), log.WithStderr(&logBuf), log.WithStdout(&logBuf))
-
 	tests := []struct {
 		name           string
 		query          string
@@ -221,9 +217,10 @@ func TestCallbackServerHandleCallback(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logBuf.Reset()
+			var logBuf bytes.Buffer
+			logger := log.New(log.WithVerbose(true), log.WithOutput(&logBuf, &logBuf))
 
-			s, err := NewCallbackServer("http://localhost:8080/callback")
+			s, err := NewCallbackServer("http://localhost:8080/callback", logger)
 			if err != nil {
 				t.Skipf("Skipping due to template parsing error: %v", err)
 			}

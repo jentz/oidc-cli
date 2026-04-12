@@ -13,6 +13,12 @@ type Logger struct {
 	stdOut  io.Writer
 }
 
+// Discard returns a logger that discards all output. Each call returns a
+// new instance so callers cannot mutate shared state.
+func Discard() *Logger {
+	return New(WithOutput(io.Discard, io.Discard))
+}
+
 type Option func(*Logger)
 
 // WithVerbose enables verbose logging.
@@ -57,6 +63,13 @@ func New(opts ...Option) *Logger {
 	}
 
 	return logger
+}
+
+// SetVerbose toggles verbose output on this logger. Intended for callers
+// that must construct the logger before knowing the desired verbosity
+// (e.g. when the flag is not yet parsed).
+func (l *Logger) SetVerbose(verbose bool) {
+	l.verbose = verbose
 }
 
 // Printf formats and writes a message to the error output (only in verbose mode).
@@ -105,51 +118,4 @@ func (l *Logger) Verboseln(args ...interface{}) {
 	if l.verbose {
 		_, _ = fmt.Fprintln(l.stdOut, args...)
 	}
-}
-
-var defaultLogger = New(WithVerbose(true), WithStderr(os.Stderr), WithStdout(os.Stdout))
-
-// SetDefaultLogger sets the default logger with the provided options.
-func SetDefaultLogger(opts ...Option) {
-	defaultLogger = New(opts...)
-}
-
-// Printf writes formatted output to the default logger's error output.
-func Printf(format string, a ...interface{}) {
-	defaultLogger.Printf(format, a...)
-}
-
-// Println writes a line to the default logger's error output.
-func Println(a ...interface{}) {
-	defaultLogger.Println(a...)
-}
-
-// Errorf writes a formatted error message to the default logger's error output.
-func Errorf(format string, a ...interface{}) {
-	defaultLogger.Errorf(format, a...)
-}
-
-// Errorln writes a line to the default logger's error output.
-func Errorln(a ...interface{}) {
-	defaultLogger.Errorln(a...)
-}
-
-// Outputf writes formatted output to the default logger's standard output.
-func Outputf(format string, a ...interface{}) {
-	defaultLogger.Outputf(format, a...)
-}
-
-// Outputln writes a line to the default logger's standard output.
-func Outputln(a ...interface{}) {
-	defaultLogger.Outputln(a...)
-}
-
-// Verbosef writes formatted output to the default logger's standard output.
-func Verbosef(format string, a ...interface{}) {
-	defaultLogger.Verbosef(format, a...)
-}
-
-// Verboseln writes a line to the default logger's standard output.
-func Verboseln(a ...interface{}) {
-	defaultLogger.Verboseln(a...)
 }

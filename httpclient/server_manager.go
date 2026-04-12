@@ -7,11 +7,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jentz/oidc-cli/log"
 	"github.com/jentz/oidc-cli/webflow"
 )
 
 // DefaultCallbackServerManager implements CallbackServerManager using the existing server logic.
-type DefaultCallbackServerManager struct{}
+type DefaultCallbackServerManager struct {
+	logger *log.Logger
+}
 
 // Ensure DefaultCallbackServerManager implements the interface.
 var _ CallbackServerManager = (*DefaultCallbackServerManager)(nil)
@@ -32,7 +35,7 @@ func (m *DefaultCallbackServerManager) StartServer(ctx context.Context, callback
 		return nil, ctx.Err()
 	}
 
-	callbackServer, err := webflow.NewCallbackServer(callback)
+	callbackServer, err := webflow.NewCallbackServer(callback, m.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create callback server: %w", err)
 	}

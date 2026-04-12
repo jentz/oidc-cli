@@ -27,6 +27,7 @@ type CallbackServer struct {
 	listen      func(network, addr string) (net.Listener, error)
 	successTmpl *template.Template
 	errorTmpl   *template.Template
+	logger      *log.Logger
 }
 
 type CallbackResponse struct {
@@ -36,7 +37,7 @@ type CallbackResponse struct {
 	ErrorDescription string
 }
 
-func NewCallbackServer(callbackURI string) (*CallbackServer, error) {
+func NewCallbackServer(callbackURI string, logger *log.Logger) (*CallbackServer, error) {
 	u, err := url.Parse(callbackURI)
 	if err != nil {
 		return nil, fmt.Errorf("invalid callback URI: %w", err)
@@ -52,6 +53,10 @@ func NewCallbackServer(callbackURI string) (*CallbackServer, error) {
 		return nil, fmt.Errorf("failed to parse error template: %w", err)
 	}
 
+	if logger == nil {
+		logger = log.Discard()
+	}
+
 	return &CallbackServer{
 		host:        u.Host,
 		path:        u.Path,
@@ -59,6 +64,7 @@ func NewCallbackServer(callbackURI string) (*CallbackServer, error) {
 		listen:      net.Listen,
 		successTmpl: successTmpl,
 		errorTmpl:   errorTmpl,
+		logger:      logger,
 	}, nil
 }
 
@@ -126,7 +132,7 @@ func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := tmpl.Execute(w, resp); err != nil {
-		log.Errorf("failed to execute template: %v", err)
+		s.logger.Errorf("failed to execute template: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -136,6 +142,6 @@ func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) 
 	case s.response <- &resp:
 		// Successfully sent the response
 	default:
-		log.Errorf("callback response channel is full, dropping response")
+		s.logger.Errorf("callback response channel is full, dropping response")
 	}
 }
