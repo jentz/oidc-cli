@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"flag"
 
+	"github.com/jentz/oidc-cli/httpclient"
+	"github.com/jentz/oidc-cli/log"
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags *flag.FlagSet, verbose bool, err error) {
+func initGlobalConfig(args []string, logger *log.Logger) (oidcConf *oidc.Config, flags *flag.FlagSet, err error) {
 	oidcConf = oidc.NewConfig()
 
-	flags = flag.NewFlagSet(name, flag.ContinueOnError)
+	var verbose bool
+
+	flags = flag.NewFlagSet("global flags", flag.ContinueOnError)
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
@@ -24,8 +28,15 @@ func parseGlobalFlags(name string, args []string) (oidcConf *oidc.Config, flags 
 
 	err = flags.Parse(args)
 	if err != nil {
-		return nil, flags, false, err
+		return nil, flags, err
 	}
 
-	return oidcConf, flags, verbose, nil
+	logger.SetVerbose(verbose)
+	oidcConf.Logger = logger
+	oidcConf.Client = httpclient.NewClient(&httpclient.Config{
+		SkipTLSVerify: oidcConf.SkipTLSVerify,
+		Logger:        logger,
+	})
+
+	return oidcConf, flags, nil
 }

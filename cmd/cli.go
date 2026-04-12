@@ -6,7 +6,6 @@ import (
 	"flag"
 	"os"
 
-	"github.com/jentz/oidc-cli/httpclient"
 	"github.com/jentz/oidc-cli/log"
 )
 
@@ -21,7 +20,7 @@ const (
 func CLI(args []string, logOptions ...log.Option) int {
 	logger := log.New(logOptions...)
 
-	globalConf, flagSet, verbose, err := parseGlobalFlags("global flags", args)
+	globalConf, flagSet, err := initGlobalConfig(args, logger)
 	args = flagSet.Args()
 
 	flag.Usage = func() {
@@ -37,13 +36,6 @@ func CLI(args []string, logOptions ...log.Option) int {
 		logger.Errorln("See 'oidc-cli --help' for usage.")
 		return ExitError
 	}
-
-	logger.SetVerbose(verbose)
-	globalConf.Logger = logger
-	globalConf.Client = httpclient.NewClient(&httpclient.Config{
-		SkipTLSVerify: globalConf.SkipTLSVerify,
-		Logger:        logger,
-	})
 
 	// If no command is specified, print usage and exit
 	if len(args) < 1 {
