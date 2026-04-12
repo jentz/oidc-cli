@@ -51,6 +51,7 @@ func (m *mockListener) Addr() net.Addr {
 }
 
 func TestNewCallbackServer(t *testing.T) {
+	t.Parallel()
 	// Skip if template files are missing (real files needed for embed.FS)
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
@@ -74,6 +75,7 @@ func TestNewCallbackServer(t *testing.T) {
 }
 
 func TestCallbackServerStart(t *testing.T) {
+	t.Parallel()
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		t.Skipf("Skipping due to template parsing error: %v", err)
@@ -112,6 +114,7 @@ func TestCallbackServerStart(t *testing.T) {
 }
 
 func TestCallbackServerStartListenError(t *testing.T) {
+	t.Parallel()
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		t.Skipf("Skipping due to template parsing error: %v", err)
@@ -129,6 +132,7 @@ func TestCallbackServerStartListenError(t *testing.T) {
 }
 
 func TestCallbackServerWaitForCallback(t *testing.T) {
+	t.Parallel()
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
 	if err != nil {
 		t.Skipf("Skipping due to template parsing error: %v", err)
@@ -157,6 +161,7 @@ func TestCallbackServerWaitForCallback(t *testing.T) {
 }
 
 func TestCallbackServerHandleCallback(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		query          string
@@ -217,6 +222,7 @@ func TestCallbackServerHandleCallback(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var logBuf bytes.Buffer
 			logger := log.New(log.WithVerbose(true), log.WithOutput(&logBuf, &logBuf))
 

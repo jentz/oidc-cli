@@ -10,6 +10,7 @@ import (
 )
 
 func TestDefaultCallbackServerManager_StartServer(t *testing.T) {
+	t.Parallel()
 	manager := &DefaultCallbackServerManager{}
 
 	tests := []struct {
@@ -33,6 +34,7 @@ func TestDefaultCallbackServerManager_StartServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 
@@ -60,6 +62,7 @@ func TestDefaultCallbackServerManager_StartServer(t *testing.T) {
 }
 
 func TestDefaultCallbackServerManager_StartServer_InvalidURL(t *testing.T) {
+	t.Parallel()
 	manager := &DefaultCallbackServerManager{}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -79,6 +82,7 @@ func TestDefaultCallbackServerManager_StartServer_InvalidURL(t *testing.T) {
 }
 
 func TestDefaultCallbackServerManager_StartServer_ContextCanceled(t *testing.T) {
+	t.Parallel()
 	manager := &DefaultCallbackServerManager{}
 
 	// Create a context that's already canceled
@@ -96,6 +100,7 @@ func TestDefaultCallbackServerManager_StartServer_ContextCanceled(t *testing.T) 
 }
 
 func TestDefaultCallbackServerManager_WaitForCallback(t *testing.T) {
+	t.Parallel()
 	manager := &DefaultCallbackServerManager{}
 
 	tests := []struct {
@@ -114,6 +119,7 @@ func TestDefaultCallbackServerManager_WaitForCallback(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
 
@@ -139,6 +145,7 @@ func TestDefaultCallbackServerManager_WaitForCallback(t *testing.T) {
 }
 
 func TestDefaultCallbackServerManager_WaitForCallback_Timeout(t *testing.T) {
+	t.Parallel()
 	manager := &DefaultCallbackServerManager{}
 
 	// Create a server but don't send any callback
@@ -167,12 +174,14 @@ func TestDefaultCallbackServerManager_WaitForCallback_Timeout(t *testing.T) {
 	}
 }
 
-func TestDefaultCallbackServerManager_Interface(_ *testing.T) {
+func TestDefaultCallbackServerManager_Interface(t *testing.T) {
+	t.Parallel()
 	var _ CallbackServerManager = (*DefaultCallbackServerManager)(nil)
 }
 
 // Integration test to verify the full server lifecycle
 func TestDefaultCallbackServerManager_Integration(t *testing.T) {
+	t.Parallel()
 	manager := &DefaultCallbackServerManager{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

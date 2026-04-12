@@ -9,6 +9,7 @@ import (
 )
 
 func TestExecuteDeviceAuthorizationRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		req        *DeviceAuthorizationRequest
@@ -83,6 +84,7 @@ func TestExecuteDeviceAuthorizationRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost {
 					t.Errorf("expected POST request, got %s", r.Method)
@@ -123,6 +125,7 @@ func TestExecuteDeviceAuthorizationRequest(t *testing.T) {
 }
 
 func TestParseDeviceAuthorizationResponse(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		statusCode int
@@ -176,6 +179,7 @@ func TestParseDeviceAuthorizationResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			resp := &Response{
 				StatusCode: tt.statusCode,
 				Body:       []byte(tt.body),

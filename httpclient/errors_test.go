@@ -6,6 +6,7 @@ import (
 )
 
 func TestError_Error(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		err  *Error
@@ -40,6 +41,7 @@ func TestError_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := tt.err.Error()
 			if got != tt.want {
 				t.Errorf("Error() = %q, want %q", got, tt.want)
@@ -49,6 +51,7 @@ func TestError_Error(t *testing.T) {
 }
 
 func TestWrapError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		err       error
@@ -83,6 +86,7 @@ func TestWrapError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := WrapError(tt.err, tt.operation)
 			if got.Error() != tt.want {
 				t.Errorf("WrapError() = %q, want %q", got.Error(), tt.want)

@@ -8,6 +8,7 @@ import (
 )
 
 func TestDefaultResponseValidator_ValidateResponse(t *testing.T) {
+	t.Parallel()
 	validator := &DefaultResponseValidator{}
 
 	tests := []struct {
@@ -139,6 +140,7 @@ func TestDefaultResponseValidator_ValidateResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := validator.ValidateResponse(tt.req, tt.resp)
 
 			if tt.wantErr {
@@ -173,6 +175,7 @@ func TestDefaultResponseValidator_ValidateResponse(t *testing.T) {
 	}
 }
 
-func TestDefaultResponseValidator_Interface(_ *testing.T) {
+func TestDefaultResponseValidator_Interface(t *testing.T) {
+	t.Parallel()
 	var _ ResponseValidator = (*DefaultResponseValidator)(nil)
 }

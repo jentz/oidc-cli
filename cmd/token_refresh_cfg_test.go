@@ -10,6 +10,7 @@ import (
 )
 
 func TestParseTokenRefreshFlagsResult(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name     string
 		args     []string
@@ -89,6 +90,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runner, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
@@ -111,6 +113,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 }
 
 func TestParseTokenRefreshFlagsError(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name          string
 		args          []string
@@ -178,6 +181,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")
@@ -193,6 +197,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 }
 
 func TestParseTokenRefreshFlagsStdin(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		input         string
@@ -220,6 +225,7 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			args := []string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
@@ -259,6 +265,7 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 }
 
 func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
+	t.Parallel()
 	expectedError := "no refresh token provided on stdin"
 
 	args := []string{

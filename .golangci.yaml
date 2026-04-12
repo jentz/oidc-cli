@@ -12,6 +12,7 @@ linters:
     - perfsprint
     - revive
     - thelper
+    - paralleltest
     - tparallel
     - unconvert
     - unparam

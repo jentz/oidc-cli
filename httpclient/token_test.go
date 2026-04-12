@@ -12,6 +12,7 @@ import (
 )
 
 func TestExecuteTokenRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		req        *TokenRequest
@@ -65,6 +66,7 @@ func TestExecuteTokenRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost {
 					t.Errorf("Expected POST method, got %s", r.Method)
@@ -106,6 +108,7 @@ func TestExecuteTokenRequest(t *testing.T) {
 }
 
 func TestExecutePollingTokenRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		intervals    []int
@@ -140,6 +143,7 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			attempts := 0
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				if attempts >= len(tt.intervals) {
@@ -190,6 +194,7 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 }
 
 func TestExecutePollingTokenRequest_ContextCancellation(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	attempts := 0
@@ -237,7 +242,9 @@ func TestExecutePollingTokenRequest_ContextCancellation(t *testing.T) {
 }
 
 func TestSleepWithContext(t *testing.T) {
+	t.Parallel()
 	t.Run("normal completion", func(t *testing.T) {
+		t.Parallel()
 		err := sleepWithContext(context.Background(), 50*time.Millisecond)
 		if err != nil {
 			t.Errorf("Expected nil error, got: %v", err)
@@ -245,6 +252,7 @@ func TestSleepWithContext(t *testing.T) {
 	})
 
 	t.Run("context cancelled during sleep", func(t *testing.T) {
+		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
 		time.AfterFunc(50*time.Millisecond, cancel)
 
@@ -262,6 +270,7 @@ func TestSleepWithContext(t *testing.T) {
 	})
 
 	t.Run("already cancelled context", func(t *testing.T) {
+		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
@@ -280,6 +289,7 @@ func TestSleepWithContext(t *testing.T) {
 }
 
 func TestCreateAuthCodeTokenRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		clientID     string
@@ -321,6 +331,7 @@ func TestCreateAuthCodeTokenRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			req := CreateAuthCodeTokenRequest(tt.clientID, tt.clientSecret, tt.authMethod, tt.code, tt.redirectURI, tt.codeVerifier)
 
 			// Check basic fields
@@ -354,6 +365,7 @@ func TestCreateAuthCodeTokenRequest(t *testing.T) {
 }
 
 func TestCreateRefreshTokenRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		clientID     string
@@ -390,6 +402,7 @@ func TestCreateRefreshTokenRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			req := CreateRefreshTokenRequest(tt.clientID, tt.clientSecret, tt.authMethod, tt.refreshToken, tt.scope)
 
 			// Check basic fields
@@ -414,6 +427,7 @@ func TestCreateRefreshTokenRequest(t *testing.T) {
 }
 
 func TestCreateClientCredentialsRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		clientID     string
@@ -444,6 +458,7 @@ func TestCreateClientCredentialsRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			req := CreateClientCredentialsRequest(tt.clientID, tt.clientSecret, tt.authMethod, tt.scope)
 
 			// Check basic fields
@@ -468,6 +483,7 @@ func TestCreateClientCredentialsRequest(t *testing.T) {
 }
 
 func TestCreateDeviceCodeTokenRequest(t *testing.T) {
+	t.Parallel()
 	req := CreateDeviceCodeTokenRequest("device-client", "device-secret", AuthMethodBasic, "device123", "test-code-verifier")
 
 	// Check basic fields
@@ -501,6 +517,7 @@ func TestCreateDeviceCodeTokenRequest(t *testing.T) {
 }
 
 func TestCreateTokenExchangeRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		clientID     string
@@ -560,6 +577,7 @@ func TestCreateTokenExchangeRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			req := CreateTokenExchangeRequest(tt.clientID, tt.clientSecret, tt.authMethod, tt.input)
 
 			// Check basic fields
@@ -595,6 +613,7 @@ func TestCreateTokenExchangeRequest(t *testing.T) {
 }
 
 func TestParseTokenResponse(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		statusCode int
@@ -639,6 +658,7 @@ func TestParseTokenResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			resp := &Response{
 				StatusCode: tt.statusCode,
 				Body:       []byte(tt.body),

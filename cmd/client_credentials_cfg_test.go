@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseClientCredentialsFlagsResult(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name     string
 		args     []string
@@ -78,6 +79,7 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runner, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
@@ -100,6 +102,7 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 }
 
 func TestParseClientCredentialsFlagsError(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		name string
 		args []string
@@ -123,6 +126,7 @@ func TestParseClientCredentialsFlagsError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, output, err := parseClientCredentialsFlags("client_credentials", tt.args, &oidc.Config{}, strings.NewReader(""))
 			if err == nil {
 				t.Errorf("err got nil, want error")

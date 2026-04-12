@@ -73,6 +73,7 @@ func (m *MockResponseValidator) ValidateResponse(req *AuthorizationCodeRequest, 
 
 // TestExecuteAuthorizationCodeRequest_WithMocks covers the scenario of executing an authorization code request with mocked dependencies.
 func TestExecuteAuthorizationCodeRequest_WithMocks(t *testing.T) {
+	t.Parallel()
 	client := NewClient(nil)
 
 	// Create mock dependencies
@@ -162,6 +163,7 @@ func TestExecuteAuthorizationCodeRequest_WithMocks(t *testing.T) {
 // TestExecuteAuthorizationCodeRequest_ComponentIsolation demonstrates how individual
 // components can be tested in isolation.
 func TestExecuteAuthorizationCodeRequest_ComponentIsolation(t *testing.T) {
+	t.Parallel()
 	client := NewClient(nil)
 
 	// Test scenario: Server manager fails to start server
