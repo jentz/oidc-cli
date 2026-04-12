@@ -91,7 +91,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runner, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{}, strings.NewReader(""))
+			runner, output, err := parseTokenRefreshFlags(ParseInput{Name: "token_refresh", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -182,7 +182,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, output, err := parseTokenRefreshFlags("token_refresh", tt.args, &oidc.Config{}, strings.NewReader(""))
+			_, output, err := parseTokenRefreshFlags(ParseInput{Name: "token_refresh", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
@@ -233,7 +233,7 @@ func TestParseTokenRefreshFlagsStdin(t *testing.T) {
 				"--refresh-token", "-", // This triggers stdin reading
 			}
 
-			runner, output, err := parseTokenRefreshFlags("token_refresh", args, &oidc.Config{}, strings.NewReader(tt.input))
+			runner, output, err := parseTokenRefreshFlags(ParseInput{Name: "token_refresh", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader(tt.input)})
 
 			if tt.expectError {
 				if err == nil {
@@ -275,7 +275,7 @@ func TestParseTokenRefreshFlagsStdinError(t *testing.T) {
 		"--refresh-token", "-", // This triggers stdin reading
 	}
 
-	_, _, err := parseTokenRefreshFlags("token_refresh", args, &oidc.Config{}, strings.NewReader(""))
+	_, _, err := parseTokenRefreshFlags(ParseInput{Name: "token_refresh", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 	if err == nil {
 		t.Error("expected error from empty stdin, got nil")
 	}

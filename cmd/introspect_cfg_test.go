@@ -91,7 +91,7 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runner, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{}, strings.NewReader(""))
+			runner, output, err := parseIntrospectFlags(ParseInput{Name: "introspect", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err != nil {
 				t.Errorf("err got %v, want nil", err)
 			}
@@ -146,7 +146,7 @@ func TestParseIntrospectFlagsError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, output, err := parseIntrospectFlags("introspect", tt.args, &oidc.Config{}, strings.NewReader(""))
+			_, output, err := parseIntrospectFlags(ParseInput{Name: "introspect", Args: tt.args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 			if err == nil {
 				t.Errorf("err got nil, want error")
 			}
@@ -194,7 +194,7 @@ func TestParseIntrospectFlagsStdin(t *testing.T) {
 				"--token", "-", // This triggers stdin reading
 			}
 
-			runner, output, err := parseIntrospectFlags("introspect", args, &oidc.Config{}, strings.NewReader(tt.input))
+			runner, output, err := parseIntrospectFlags(ParseInput{Name: "introspect", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader(tt.input)})
 
 			if tt.expectError {
 				if err == nil {
@@ -236,7 +236,7 @@ func TestParseIntrospectFlagsStdinError(t *testing.T) {
 		"--token", "-", // This triggers stdin reading
 	}
 
-	_, _, err := parseIntrospectFlags("introspect", args, &oidc.Config{}, strings.NewReader(""))
+	_, _, err := parseIntrospectFlags(ParseInput{Name: "introspect", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 	if err == nil {
 		t.Error("expected error from empty stdin, got nil")
 	}
@@ -255,7 +255,7 @@ func TestParseIntrospectFlagsCustomArgs(t *testing.T) {
 		"--custom", "foo=bar",
 		"--custom", "baz=qux",
 	}
-	runner, output, err := parseIntrospectFlags("introspect", testArgs, &oidc.Config{}, strings.NewReader(""))
+	runner, output, err := parseIntrospectFlags(ParseInput{Name: "introspect", Args: testArgs, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 	if err != nil {
 		t.Fatalf("err got %v, want nil", err)
 	}

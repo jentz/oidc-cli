@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"flag"
-	"io"
 
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func parseTokenExchangeFlags(name string, args []string, oidcConf *oidc.Config, stdin io.Reader) (runner CommandRunner, output string, err error) {
-	flags := flag.NewFlagSet(name, flag.ContinueOnError)
+func parseTokenExchangeFlags(in ParseInput) (runner CommandRunner, output string, err error) {
+	oidcConf := in.Conf
+	flags := flag.NewFlagSet(in.Name, flag.ContinueOnError)
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
@@ -39,13 +39,13 @@ func parseTokenExchangeFlags(name string, args []string, oidcConf *oidc.Config, 
 		FlowConfig: &flowConf,
 	}
 
-	err = flags.Parse(args)
+	err = flags.Parse(in.Args)
 	if err != nil {
 		return nil, buf.String(), err
 	}
 
 	if flowConf.SubjectToken == "-" {
-		token, err := readTokenFromStdin(stdin, "subject token")
+		token, err := readTokenFromStdin(in.Stdin, "subject token")
 		if err != nil {
 			return nil, buf.String(), err
 		}

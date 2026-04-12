@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"flag"
-	"io"
 
 	"github.com/jentz/oidc-cli/httpclient"
 	"github.com/jentz/oidc-cli/oidc"
 )
 
-func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config, stdin io.Reader) (runner CommandRunner, output string, err error) {
-	flags := flag.NewFlagSet(name, flag.ContinueOnError)
+func parseIntrospectFlags(in ParseInput) (runner CommandRunner, output string, err error) {
+	oidcConf := in.Conf
+	flags := flag.NewFlagSet(in.Name, flag.ContinueOnError)
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
@@ -35,7 +35,7 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config, std
 		FlowConfig: &flowConf,
 	}
 
-	err = flags.Parse(args)
+	err = flags.Parse(in.Args)
 	if err != nil {
 		return nil, buf.String(), err
 	}
@@ -53,7 +53,7 @@ func parseIntrospectFlags(name string, args []string, oidcConf *oidc.Config, std
 	}
 
 	if flowConf.Token == "-" {
-		token, err := readTokenFromStdin(stdin, "token")
+		token, err := readTokenFromStdin(in.Stdin, "token")
 		if err != nil {
 			return nil, buf.String(), err
 		}
