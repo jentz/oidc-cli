@@ -7,7 +7,6 @@ import (
 
 	"github.com/jentz/oidc-cli/crypto"
 	"github.com/jentz/oidc-cli/httpclient"
-	"github.com/jentz/oidc-cli/log"
 )
 
 type DeviceFlow struct {
@@ -85,20 +84,20 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		return httpclient.WrapError(err, "device authorization")
 	}
 
-	// Print link to verification URI
+	logger := c.Config.Logger
 	if deviceAuthResp.VerificationURIComplete != "" {
 		verificationURI := deviceAuthResp.VerificationURIComplete
-		log.Printf("device verification uri: %s\n", verificationURI)
+		logger.Printf("device verification uri: %s\n", verificationURI)
 		err := httpclient.NewDefaultBrowserLauncher().OpenURL(verificationURI)
 		if err != nil {
-			log.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
+			logger.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
 		}
 	} else {
 		verificationURI := deviceAuthResp.VerificationURI
-		log.Printf("device verification uri: %s, verification code: %s\n", verificationURI, deviceAuthResp.UserCode)
+		logger.Printf("device verification uri: %s, verification code: %s\n", verificationURI, deviceAuthResp.UserCode)
 		err := httpclient.NewDefaultBrowserLauncher().OpenURL(verificationURI)
 		if err != nil {
-			log.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
+			logger.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
 		}
 	}
 
@@ -124,6 +123,6 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to format token response: %w", err)
 	}
-	log.Outputf("%s\n", string(prettyJSON))
+	logger.Outputf("%s\n", string(prettyJSON))
 	return nil
 }

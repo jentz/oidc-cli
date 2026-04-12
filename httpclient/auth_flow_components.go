@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 
+	"github.com/jentz/oidc-cli/log"
 	"github.com/jentz/oidc-cli/webflow"
 )
 
@@ -41,9 +42,9 @@ type AuthFlowDependencies struct {
 }
 
 // NewAuthFlowDependencies creates a new set of dependencies with default implementations.
-func NewAuthFlowDependencies() *AuthFlowDependencies {
+func NewAuthFlowDependencies(logger *log.Logger) *AuthFlowDependencies {
 	return &AuthFlowDependencies{
-		ServerManager:     &DefaultCallbackServerManager{},
+		ServerManager:     &DefaultCallbackServerManager{logger: logger},
 		URLBuilder:        &DefaultAuthorizationURLBuilder{},
 		BrowserLauncher:   NewDefaultBrowserLauncher(),
 		ResponseValidator: &DefaultResponseValidator{},

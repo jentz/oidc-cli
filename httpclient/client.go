@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/jentz/oidc-cli/log"
 )
 
 // Config holds HTTP client configuration.
@@ -18,6 +20,7 @@ type Config struct {
 	SkipTLSVerify bool              // Skip TLS verification for HTTP requests
 	Timeout       time.Duration     // Timeout for HTTP requests
 	Transport     http.RoundTripper // Custom HTTP transport, if any
+	Logger        *log.Logger       // Logger for client output; if nil, output is discarded
 }
 
 // SleepFunc is a function that sleeps for a duration, respecting context cancellation.
@@ -28,6 +31,7 @@ type Client struct {
 	client    *http.Client
 	authDeps  *AuthFlowDependencies // Optional dependencies for authorization flows
 	sleepFunc SleepFunc             // Optional; if nil, sleep() falls back to sleepWithContext
+	logger    *log.Logger
 }
 
 // Response represents an HTTP response with convenience methods
@@ -65,12 +69,18 @@ func NewClient(cfg *Config) *Client {
 		transport = httpTransport
 	}
 
+	logger := cfg.Logger
+	if logger == nil {
+		logger = log.Discard()
+	}
+
 	return &Client{
 		client: &http.Client{
 			Transport: transport,
 			Timeout:   cfg.Timeout,
 		},
-		authDeps: NewAuthFlowDependencies(), // Initialize with default dependencies
+		authDeps: NewAuthFlowDependencies(logger),
+		logger:   logger,
 	}
 }
 

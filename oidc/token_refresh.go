@@ -7,7 +7,6 @@ import (
 
 	"github.com/jentz/oidc-cli/crypto"
 	"github.com/jentz/oidc-cli/httpclient"
-	"github.com/jentz/oidc-cli/log"
 )
 
 type TokenRefreshFlow struct {
@@ -64,6 +63,6 @@ func (c *TokenRefreshFlow) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to format token response: %w", err)
 	}
-	log.Outputf("%s\n", string(prettyJSON))
+	c.Config.Logger.Outputf("%s\n", string(prettyJSON))
 	return nil
 }

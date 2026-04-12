@@ -6,6 +6,7 @@ import (
 
 	"github.com/jentz/oidc-cli/crypto"
 	"github.com/jentz/oidc-cli/httpclient"
+	"github.com/jentz/oidc-cli/log"
 )
 
 type Config struct {
@@ -27,6 +28,15 @@ type Config struct {
 	DPoPPrivateKey                     any
 	DPoPPublicKey                      any
 	Client                             *httpclient.Client
+	Logger                             *log.Logger
+}
+
+// NewConfig returns a Config with sensible defaults. Logger is set to
+// log.Discard() so callers that don't need logging can skip setting it.
+func NewConfig() *Config {
+	return &Config{
+		Logger: log.Discard(),
+	}
 }
 
 func (c *Config) DiscoverEndpoints(ctx context.Context) error {

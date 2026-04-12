@@ -266,33 +266,43 @@ func TestFunctionalOptions(t *testing.T) {
 	})
 }
 
-func TestPackageLevelFunctions(t *testing.T) {
-	// Save original default logger
-	originalDefault := defaultLogger
-	defer func() { defaultLogger = originalDefault }()
+func TestDiscard(t *testing.T) {
+	logger := Discard()
+	if logger == nil {
+		t.Fatal("Discard() returned nil")
+	}
 
-	// Create test logger as default
-	var errBuf, outBuf bytes.Buffer
-	defaultLogger = New(
-		WithVerbose(true),
-		WithOutput(&outBuf, &errBuf),
-	)
+	logger.Printf("should not panic")
+	logger.Errorf("should not panic")
+	logger.Outputf("should not panic")
+	logger.Verbosef("should not panic")
 
-	t.Run("package level Printf", func(t *testing.T) {
-		errBuf.Reset()
-		Printf("test %s", "message")
-		if got := errBuf.String(); got != "test message" {
-			t.Errorf("Printf = %q, want %q", got, "test message")
-		}
-	})
+	if Discard() == logger {
+		t.Error("Discard() should return a new instance each call")
+	}
+}
 
-	t.Run("package level Outputf", func(t *testing.T) {
-		outBuf.Reset()
-		Outputf("result %d", 42)
-		if got := outBuf.String(); got != "result 42" {
-			t.Errorf("Outputf = %q, want %q", got, "result 42")
-		}
-	})
+func TestSetVerbose(t *testing.T) {
+	var errBuf bytes.Buffer
+	logger := New(WithVerbose(false), WithStderr(&errBuf))
+
+	logger.Printf("hidden")
+	if errBuf.Len() != 0 {
+		t.Errorf("expected no output with verbose=false, got %q", errBuf.String())
+	}
+
+	logger.SetVerbose(true)
+	logger.Printf("visible")
+	if got := errBuf.String(); got != "visible" {
+		t.Errorf("expected %q after SetVerbose(true), got %q", "visible", got)
+	}
+
+	errBuf.Reset()
+	logger.SetVerbose(false)
+	logger.Printf("hidden again")
+	if errBuf.Len() != 0 {
+		t.Errorf("expected no output after SetVerbose(false), got %q", errBuf.String())
+	}
 }
 
 func TestComplexScenario(t *testing.T) {
