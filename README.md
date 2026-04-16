@@ -11,8 +11,8 @@ Command-line OIDC client, get a token without all the fuss
 
 ## Usage 🛠️
 
-```bash
-oidc-cli: is a command-line OIDC client
+```
+oidc-cli: is a command-line OIDC and oAuth2 client
 
 Usage:
   oidc-cli [global-flags] <command> [command-flags]
@@ -20,14 +20,14 @@ Usage:
 Commands:
   authorization_code: Use the Authorization Code flow to obtain tokens.
   client_credentials: Use the Client Credentials flow to obtain tokens.
+  device            : Use the Device flow to obtain tokens.
   introspect        : Validate a token and retrieve associated claims.
-  token_refresh     : Exchange a refresh token for new tokens.
+  token_refresh     : Use a refresh token to obtain new tokens.
+  token_exchange    : Exchange a token for different tokens.
   version           : Display the current version of oidc-cli.
   help              : Show help for oidc-cli or a specific command.
 
-Flags:
-
-Run `oidc-cli <command> -h` to get help for a specific command
+Run `oidc-cli <command> --help` to get help for a specific command
 ```
 
 ## Installing 💾
