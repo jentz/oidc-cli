@@ -24,11 +24,7 @@ type DeviceAuthorizationResponse struct {
 }
 
 // ExecuteDeviceAuthorizationRequest sends a device authorization request to the specified endpoint
-func (c *Client) ExecuteDeviceAuthorizationRequest(ctx context.Context, endpoint string, req *DeviceAuthorizationRequest, headers map[string]string) (*Response, error) {
-	if headers == nil {
-		headers = make(map[string]string)
-	}
-
+func (c *Client) ExecuteDeviceAuthorizationRequest(ctx context.Context, endpoint string, req *DeviceAuthorizationRequest) (*Response, error) {
 	params := url.Values{}
 	params.Set("client_id", req.ClientID)
 	if req.Scope != "" {
@@ -42,7 +38,7 @@ func (c *Client) ExecuteDeviceAuthorizationRequest(ctx context.Context, endpoint
 	}
 
 	// Execute the request
-	return c.PostForm(ctx, endpoint, params, headers)
+	return c.PostForm(ctx, endpoint, params, nil)
 }
 
 // ParseDeviceAuthorizationResponse parses the device authorization response into a map

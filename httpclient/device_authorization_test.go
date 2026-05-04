@@ -111,7 +111,7 @@ func TestExecuteDeviceAuthorizationRequest(t *testing.T) {
 			defer ts.Close()
 
 			client := NewClient(nil)
-			resp, err := client.ExecuteDeviceAuthorizationRequest(context.Background(), ts.URL, tt.req, nil)
+			resp, err := client.ExecuteDeviceAuthorizationRequest(context.Background(), ts.URL, tt.req)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)

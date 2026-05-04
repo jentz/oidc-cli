@@ -68,13 +68,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		req.CodeChallenge = crypto.GeneratePKCECodeChallenge(codeVerifier)
 	}
 
-	// Handle DPoP
-	headers, err := c.setupDPoPHeaders()
-	if err != nil {
-		return err
-	}
-
-	resp, err := client.ExecuteDeviceAuthorizationRequest(ctx, c.Config.DeviceAuthorizationEndpoint, req, headers)
+	resp, err := client.ExecuteDeviceAuthorizationRequest(ctx, c.Config.DeviceAuthorizationEndpoint, req)
 	if err != nil {
 		return fmt.Errorf("device authorization request failed: %w", err)
 	}
@@ -109,7 +103,14 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		deviceAuthResp.DeviceCode,
 		codeVerifier,
 	)
-	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
+
+	// Handle DPoP
+	headers, err := c.setupDPoPHeaders()
+	if err != nil {
+		return err
+	}
+
+	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval, headers)
 	if err != nil {
 		return fmt.Errorf("polling token request failed: %w", err)
 	}

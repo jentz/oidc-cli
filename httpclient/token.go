@@ -80,13 +80,13 @@ func (c *Client) ExecuteTokenRequest(ctx context.Context, tokenEndpoint string, 
 }
 
 // ExecutePollingTokenRequest sends a token request to the specified endpoint, polling at the specified interval until a successful response is received
-func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint string, req *TokenRequest, interval int) (*Response, error) {
+func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint string, req *TokenRequest, interval int, headers map[string]string) (*Response, error) {
 	if interval <= 0 {
 		interval = 5 // Default polling interval in seconds
 	}
 
 	for {
-		resp, err := c.ExecuteTokenRequest(ctx, tokenEndpoint, req, nil)
+		resp, err := c.ExecuteTokenRequest(ctx, tokenEndpoint, req, headers)
 		if err != nil {
 			return nil, err
 		}
