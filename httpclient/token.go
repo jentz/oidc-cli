@@ -23,6 +23,10 @@ func sleepWithContext(ctx context.Context, d time.Duration) error {
 	}
 }
 
+// DPoPProofFunc generates a DPoP proof for the given HTTP method and URL.
+// It is called once per request, ensuring each token request carries a fresh proof.
+type DPoPProofFunc func(method, url string) (string, error)
+
 // TokenRequest represents an OAuth2 token request
 type TokenRequest struct {
 	GrantType    string
@@ -30,6 +34,7 @@ type TokenRequest struct {
 	ClientSecret string
 	AuthMethod   AuthMethod
 	Params       url.Values
+	DPoP         DPoPProofFunc
 }
 
 // TokenExchangeInput is used to construct the parameters of a token exchange request
@@ -46,14 +51,12 @@ type TokenExchangeInput struct {
 }
 
 // ExecuteTokenRequest sends a token request to the specified endpoint
-func (c *Client) ExecuteTokenRequest(ctx context.Context, tokenEndpoint string, req *TokenRequest, headers map[string]string) (*Response, error) {
+func (c *Client) ExecuteTokenRequest(ctx context.Context, tokenEndpoint string, req *TokenRequest) (*Response, error) {
 	if req.Params == nil {
 		req.Params = url.Values{}
 	}
 
-	if headers == nil {
-		headers = make(map[string]string)
-	}
+	headers := make(map[string]string)
 
 	// Set grant type
 	req.Params.Set("grant_type", req.GrantType)
@@ -75,6 +78,15 @@ func (c *Client) ExecuteTokenRequest(ctx context.Context, tokenEndpoint string, 
 		req.Params.Set("client_id", req.ClientID)
 	}
 
+	// Generate and attach a fresh DPoP proof if configured
+	if req.DPoP != nil {
+		proof, err := req.DPoP("POST", tokenEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate DPoP proof: %w", err)
+		}
+		headers["DPoP"] = proof
+	}
+
 	// Execute the request
 	return c.PostForm(ctx, tokenEndpoint, req.Params, headers)
 }
@@ -86,7 +98,7 @@ func (c *Client) ExecutePollingTokenRequest(ctx context.Context, tokenEndpoint s
 	}
 
 	for {
-		resp, err := c.ExecuteTokenRequest(ctx, tokenEndpoint, req, nil)
+		resp, err := c.ExecuteTokenRequest(ctx, tokenEndpoint, req)
 		if err != nil {
 			return nil, err
 		}

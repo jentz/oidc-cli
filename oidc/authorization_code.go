@@ -97,24 +97,7 @@ func (c *AuthorizationCodeFlow) executeAuthCodeRequest(ctx context.Context, req 
 	return resp, nil
 }
 
-func (c *AuthorizationCodeFlow) setupDPoPHeaders() (map[string]string, error) {
-	headers := make(map[string]string)
-	if c.FlowConfig.DPoP {
-		dpopProof, err := crypto.NewDPoPProof(
-			c.Config.DPoPPublicKey,
-			c.Config.DPoPPrivateKey,
-			"POST",
-			c.Config.TokenEndpoint,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create DPoP proof: %w", err)
-		}
-		headers["DPoP"] = dpopProof.String()
-	}
-	return headers, nil
-}
-
-func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, codeVerifier string, headers map[string]string) (map[string]interface{}, error) {
+func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, codeVerifier string, dpop httpclient.DPoPProofFunc) (map[string]interface{}, error) {
 	tokenRequest := httpclient.CreateAuthCodeTokenRequest(
 		c.Config.ClientID,
 		c.Config.ClientSecret,
@@ -123,7 +106,8 @@ func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, c
 		c.FlowConfig.CallbackURI,
 		codeVerifier,
 	)
-	resp, err := c.Config.Client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, tokenRequest, headers)
+	tokenRequest.DPoP = dpop
+	resp, err := c.Config.Client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, tokenRequest)
 	if err != nil {
 		return nil, fmt.Errorf("token request failed: %w", err)
 	}
@@ -151,12 +135,18 @@ func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 		return err
 	}
 	// Handle DPoP
-	headers, err := c.setupDPoPHeaders()
-	if err != nil {
-		return err
+	var dpopFunc httpclient.DPoPProofFunc
+	if c.FlowConfig.DPoP {
+		dpopFunc = func(method, url string) (string, error) {
+			proof, err := crypto.NewDPoPProof(c.Config.DPoPPublicKey, c.Config.DPoPPrivateKey, method, url)
+			if err != nil {
+				return "", err
+			}
+			return proof.String(), nil
+		}
 	}
 	// Exchange authorization code for access token
-	tokenData, err := c.executeTokenRequest(ctx, authResp.Code, codeVerifier, headers)
+	tokenData, err := c.executeTokenRequest(ctx, authResp.Code, codeVerifier, dpopFunc)
 	if err != nil {
 		return err
 	}

@@ -47,8 +47,8 @@ func (c *TokenExchangeFlow) createTokenRequest() *httpclient.TokenRequest {
 	return req
 }
 
-func (c *TokenExchangeFlow) executeTokenRequest(ctx context.Context, tokenRequest *httpclient.TokenRequest, headers map[string]string) (map[string]any, error) {
-	resp, err := c.Config.Client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, tokenRequest, headers)
+func (c *TokenExchangeFlow) executeTokenRequest(ctx context.Context, tokenRequest *httpclient.TokenRequest) (map[string]any, error) {
+	resp, err := c.Config.Client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, tokenRequest)
 	if err != nil {
 		return nil, fmt.Errorf("token request failed: %w", err)
 	}
@@ -61,34 +61,22 @@ func (c *TokenExchangeFlow) executeTokenRequest(ctx context.Context, tokenReques
 	return tokenData, nil
 }
 
-func (c *TokenExchangeFlow) setupDPoPHeaders() (map[string]string, error) {
-	headers := make(map[string]string)
-	if c.FlowConfig.DPoP {
-		dpopProof, err := crypto.NewDPoPProof(
-			c.Config.DPoPPublicKey,
-			c.Config.DPoPPrivateKey,
-			"POST",
-			c.Config.TokenEndpoint,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create DPoP proof: %w", err)
-		}
-		headers["DPoP"] = dpopProof.String()
-	}
-	return headers, nil
-}
-
 func (c *TokenExchangeFlow) Run(ctx context.Context) error {
 	req := c.createTokenRequest()
 
 	// Handle DPoP
-	headers, err := c.setupDPoPHeaders()
-	if err != nil {
-		return err
+	if c.FlowConfig.DPoP {
+		req.DPoP = func(method, url string) (string, error) {
+			proof, err := crypto.NewDPoPProof(c.Config.DPoPPublicKey, c.Config.DPoPPrivateKey, method, url)
+			if err != nil {
+				return "", err
+			}
+			return proof.String(), nil
+		}
 	}
 
 	// Call the token endpoint with the token exchange request
-	tokenData, err := c.executeTokenRequest(ctx, req, headers)
+	tokenData, err := c.executeTokenRequest(ctx, req)
 	if err != nil {
 		return err
 	}

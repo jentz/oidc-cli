@@ -27,7 +27,7 @@ func (c *ClientCredentialsFlow) Run(ctx context.Context) error {
 		c.FlowConfig.Scopes,
 	)
 
-	resp, err := client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, req, nil /* no custom headers */)
+	resp, err := client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, req)
 	if err != nil {
 		return fmt.Errorf("token request failed: %w", err)
 	}
