@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -107,6 +108,89 @@ func TestExecuteTokenRequest(t *testing.T) {
 	}
 }
 
+func TestExecuteTokenRequest_DPoPFunctionCalledWithMethodAndURL(t *testing.T) {
+	t.Parallel()
+
+	var gotMethod, gotURL string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeader := r.Header.Get("DPoP")
+		if gotHeader != "proof-123" {
+			t.Errorf("got DPoP header %q, want %q", gotHeader, "proof-123")
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"access_token":"token123","token_type":"Bearer"}`))
+	}))
+	defer ts.Close()
+
+	client := NewClient(nil)
+	req := &TokenRequest{
+		GrantType:    "client_credentials",
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		AuthMethod:   AuthMethodPost,
+		DPoP: func(method, url string) (string, error) {
+			gotMethod = method
+			gotURL = url
+			return "proof-123", nil
+		},
+	}
+
+	resp, err := client.ExecuteTokenRequest(context.Background(), ts.URL, req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if !resp.IsSuccess() {
+		t.Fatalf("Expected successful response, got status %d", resp.StatusCode)
+	}
+
+	if gotMethod != http.MethodPost {
+		t.Errorf("DPoP func method = %q, want %q", gotMethod, http.MethodPost)
+	}
+	if gotURL != ts.URL {
+		t.Errorf("DPoP func url = %q, want %q", gotURL, ts.URL)
+	}
+}
+
+func TestExecuteTokenRequest_DPoPGenerationError(t *testing.T) {
+	t.Parallel()
+
+	requests := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"access_token":"token123","token_type":"Bearer"}`))
+	}))
+	defer ts.Close()
+
+	client := NewClient(nil)
+	req := &TokenRequest{
+		GrantType:  "client_credentials",
+		ClientID:   "test-client",
+		AuthMethod: AuthMethodPost,
+		DPoP: func(_, _ string) (string, error) {
+			return "", errors.New("dpop generation failure")
+		},
+	}
+
+	resp, err := client.ExecuteTokenRequest(context.Background(), ts.URL, req)
+	if resp != nil {
+		t.Error("Expected nil response when DPoP generation fails")
+	}
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to generate DPoP proof") {
+		t.Errorf("Expected wrapped DPoP generation error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "dpop generation failure") {
+		t.Errorf("Expected original DPoP error message, got: %v", err)
+	}
+	if requests != 0 {
+		t.Errorf("Expected no HTTP requests when DPoP generation fails, got %d", requests)
+	}
+}
+
 func TestExecutePollingTokenRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -190,6 +274,62 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 				t.Errorf("Expected %d attempts, got %d", tt.wantAttempts, attempts)
 			}
 		})
+	}
+}
+
+func TestExecutePollingTokenRequest_DPoPFreshPerAttempt(t *testing.T) {
+	t.Parallel()
+
+	attempts := 0
+	seenDPoP := make([]string, 0, 3)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenDPoP = append(seenDPoP, r.Header.Get("DPoP"))
+
+		if attempts < 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":"authorization_pending"}`))
+		} else {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"access_token":"token123","token_type":"Bearer"}`))
+		}
+		attempts++
+	}))
+	defer ts.Close()
+
+	client := NewClient(nil)
+	client.SetSleepFunc(func(ctx context.Context, _ time.Duration) error {
+		return sleepWithContext(ctx, 1*time.Millisecond)
+	})
+
+	proofCounter := 0
+	req := &TokenRequest{
+		GrantType:    "urn:ietf:params:oauth:grant-type:device_code",
+		ClientID:     "device-client",
+		ClientSecret: "device-secret",
+		AuthMethod:   AuthMethodBasic,
+		Params:       url.Values{"device_code": []string{"device123"}},
+		DPoP: func(_, _ string) (string, error) {
+			proofCounter++
+			return fmt.Sprintf("proof-%d", proofCounter), nil
+		},
+	}
+
+	resp, err := client.ExecutePollingTokenRequest(context.Background(), ts.URL, req, 1)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if !resp.IsSuccess() {
+		t.Fatalf("Expected successful response, got status %d", resp.StatusCode)
+	}
+
+	if len(seenDPoP) != 3 {
+		t.Fatalf("Expected 3 DPoP headers (one per attempt), got %d", len(seenDPoP))
+	}
+	for i, got := range seenDPoP {
+		want := fmt.Sprintf("proof-%d", i+1)
+		if got != want {
+			t.Errorf("Attempt %d DPoP header = %q, want %q", i+1, got, want)
+		}
 	}
 }
 
