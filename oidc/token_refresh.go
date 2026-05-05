@@ -20,35 +20,23 @@ type TokenRefreshFlowConfig struct {
 	DPoP         bool
 }
 
-func (c *TokenRefreshFlow) setupDPoPHeaders() (map[string]string, error) {
-	headers := make(map[string]string)
-	if c.FlowConfig.DPoP {
-		dpopProof, err := crypto.NewDPoPProof(
-			c.Config.DPoPPublicKey,
-			c.Config.DPoPPrivateKey,
-			"POST",
-			c.Config.TokenEndpoint,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create DPoP proof: %w", err)
-		}
-		headers["DPoP"] = dpopProof.String()
-	}
-	return headers, nil
-}
-
 func (c *TokenRefreshFlow) Run(ctx context.Context) error {
 	client := c.Config.Client
 
-	// Handle DPoP
-	headers, err := c.setupDPoPHeaders()
-	if err != nil {
-		return err
-	}
-
 	req := httpclient.CreateRefreshTokenRequest(c.Config.ClientID, c.Config.ClientSecret, c.Config.AuthMethod, c.FlowConfig.RefreshToken, c.FlowConfig.Scopes)
 
-	resp, err := client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, req, headers)
+	// Handle DPoP
+	if c.FlowConfig.DPoP {
+		req.DPoP = func(method, url string) (string, error) {
+			proof, err := crypto.NewDPoPProof(c.Config.DPoPPublicKey, c.Config.DPoPPrivateKey, method, url)
+			if err != nil {
+				return "", err
+			}
+			return proof.String(), nil
+		}
+	}
+
+	resp, err := client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, req)
 	if err != nil {
 		return fmt.Errorf("token request failed: %w", err)
 	}

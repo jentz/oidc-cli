@@ -95,7 +95,7 @@ func TestExecuteTokenRequest(t *testing.T) {
 			defer ts.Close()
 
 			client := NewClient(nil)
-			resp, err := client.ExecuteTokenRequest(context.Background(), ts.URL, tt.req, nil)
+			resp, err := client.ExecuteTokenRequest(context.Background(), ts.URL, tt.req)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -176,7 +176,7 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 			if len(tt.intervals) > 0 {
 				testInterval = tt.intervals[0]
 			}
-			resp, err := client.ExecutePollingTokenRequest(context.Background(), ts.URL, req, testInterval, nil)
+			resp, err := client.ExecutePollingTokenRequest(context.Background(), ts.URL, req, testInterval)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -221,7 +221,7 @@ func TestExecutePollingTokenRequest_ContextCancellation(t *testing.T) {
 	time.AfterFunc(100*time.Millisecond, cancel)
 
 	start := time.Now()
-	resp, err := client.ExecutePollingTokenRequest(ctx, ts.URL, req, 10, nil)
+	resp, err := client.ExecutePollingTokenRequest(ctx, ts.URL, req, 10)
 	elapsed := time.Since(start)
 
 	if resp != nil {

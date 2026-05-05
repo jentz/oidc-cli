@@ -34,23 +34,6 @@ func (c *DeviceFlow) setupPKCE() (string, error) {
 	return codeVerifier, nil
 }
 
-func (c *DeviceFlow) setupDPoPHeaders() (map[string]string, error) {
-	headers := make(map[string]string)
-	if c.FlowConfig.DPoP {
-		dpopProof, err := crypto.NewDPoPProof(
-			c.Config.DPoPPublicKey,
-			c.Config.DPoPPrivateKey,
-			"POST",
-			c.Config.TokenEndpoint,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create DPoP proof: %w", err)
-		}
-		headers["DPoP"] = dpopProof.String()
-	}
-	return headers, nil
-}
-
 func (c *DeviceFlow) Run(ctx context.Context) error {
 	client := c.Config.Client
 	codeVerifier, err := c.setupPKCE()
@@ -104,13 +87,17 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		codeVerifier,
 	)
 
-	// Handle DPoP
-	headers, err := c.setupDPoPHeaders()
-	if err != nil {
-		return err
+	if c.FlowConfig.DPoP {
+		tokenReq.DPoP = func(method, url string) (string, error) {
+			proof, err := crypto.NewDPoPProof(c.Config.DPoPPublicKey, c.Config.DPoPPrivateKey, method, url)
+			if err != nil {
+				return "", err
+			}
+			return proof.String(), nil
+		}
 	}
 
-	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval, headers)
+	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
 	if err != nil {
 		return fmt.Errorf("polling token request failed: %w", err)
 	}
