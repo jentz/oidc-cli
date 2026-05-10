@@ -22,7 +22,7 @@ func parseClientCredentialsFlags(in ParseInput) (runner CommandRunner, output st
 	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
 
 	var flowConf oidc.ClientCredentialsFlowConfig
-	flags.StringVar(&flowConf.Scopes, "scopes", "", "set scopes as a space separated list")
+	flags.StringVar(&flowConf.Scope, "scope", "", "set scope as a space separated list")
 
 	runner = &oidc.ClientCredentialsFlow{
 		Config:     oidcConf,

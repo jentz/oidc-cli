@@ -33,7 +33,7 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 				ClientSecret:      "client-secret",
 			},
 			oidc.ClientCredentialsFlowConfig{
-				Scopes: "",
+				Scope: "",
 			},
 		},
 		{
@@ -52,16 +52,16 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 				ClientSecret:          "client-secret",
 			},
 			oidc.ClientCredentialsFlowConfig{
-				Scopes: "",
+				Scope: "",
 			},
 		},
 		{
-			"scopes provided",
+			"scope provided",
 			[]string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
-				"--scopes", "expected",
+				"--scope", "expected",
 			},
 			oidc.Config{
 				IssuerURL:             "https://example.com",
@@ -72,7 +72,7 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 				ClientSecret:          "client-secret",
 			},
 			oidc.ClientCredentialsFlowConfig{
-				Scopes: "expected",
+				Scope: "expected",
 			},
 		},
 	}

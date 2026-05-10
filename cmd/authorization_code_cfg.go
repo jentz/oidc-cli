@@ -38,7 +38,7 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 	flags.StringVar(&oidcConf.DPoPPublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
 
 	var flowConf oidc.AuthorizationCodeFlowConfig
-	flags.StringVar(&flowConf.Scopes, "scopes", "openid", "set scopes as a space separated list")
+	flags.StringVar(&flowConf.Scope, "scope", "openid", "set scope as a space separated list")
 	flags.StringVar(&flowConf.CallbackURI, "callback-uri", "http://localhost:9555/callback",
 		"set callback uri (default: http://localhost:9555/callback), this will also be used as the redirect_uri in the authorization request unless overridden by -redirect-uri")
 	flags.StringVar(&flowConf.RedirectURI, "redirect-uri", "", "set the redirect_uri parameter")
@@ -93,8 +93,8 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 			"client-secret is required unless using PKCE",
 		},
 		{
-			flowConf.Scopes == "",
-			"scopes are required",
+			flowConf.Scope == "",
+			"scope is required",
 		},
 		{
 			flowConf.CallbackURI == "",

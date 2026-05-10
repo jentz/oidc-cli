@@ -42,9 +42,9 @@ Run a regular authorization code flow (with or without PKCE)
 oidc-cli authorization_code [--pkce]
 ```
 
-Adding custom ```scopes```
+Adding custom ```scope```
 ```sh
-oidc-cli authorization_code --scopes "<scope1 scope2 scopeN>"
+oidc-cli authorization_code --scope "<scope1 scope2 scopeN>"
 ```
 
 Providing custom ```acr_values```
@@ -57,7 +57,7 @@ oidc-cli authorization_code --acr-values "<acr>"
 Run a client credentials flow.
 
 ```sh
-oidc-cli client_credentials [--scopes "<scope1 scope2 scopeN>"]
+oidc-cli client_credentials [--scope "<scope1 scope2 scopeN>"]
 ```
 
 ## Check validity and content of access token
