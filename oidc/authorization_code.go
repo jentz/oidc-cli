@@ -15,7 +15,7 @@ type AuthorizationCodeFlow struct {
 }
 
 type AuthorizationCodeFlowConfig struct {
-	Scopes      string
+	Scope       string
 	CallbackURI string
 	RedirectURI string
 	Prompt      string
@@ -47,7 +47,7 @@ func (c *AuthorizationCodeFlow) setupPKCE() (string, error) {
 func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeVerifier string) (*httpclient.AuthorizationCodeRequest, error) {
 	req := &httpclient.AuthorizationCodeRequest{
 		ClientID:    c.Config.ClientID,
-		Scope:       c.FlowConfig.Scopes,
+		Scope:       c.FlowConfig.Scope,
 		RedirectURI: c.FlowConfig.RedirectURI,
 		Prompt:      c.FlowConfig.Prompt,
 		AcrValues:   c.FlowConfig.AcrValues,

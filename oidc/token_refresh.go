@@ -15,7 +15,7 @@ type TokenRefreshFlow struct {
 }
 
 type TokenRefreshFlowConfig struct {
-	Scopes       string
+	Scope        string
 	RefreshToken string
 	DPoP         bool
 }
@@ -23,7 +23,7 @@ type TokenRefreshFlowConfig struct {
 func (c *TokenRefreshFlow) Run(ctx context.Context) error {
 	client := c.Config.Client
 
-	req := httpclient.CreateRefreshTokenRequest(c.Config.ClientID, c.Config.ClientSecret, c.Config.AuthMethod, c.FlowConfig.RefreshToken, c.FlowConfig.Scopes)
+	req := httpclient.CreateRefreshTokenRequest(c.Config.ClientID, c.Config.ClientSecret, c.Config.AuthMethod, c.FlowConfig.RefreshToken, c.FlowConfig.Scope)
 
 	// Handle DPoP
 	if c.FlowConfig.DPoP {

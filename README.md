@@ -54,7 +54,7 @@ You can also download a suitable release for your platform from the [releases pa
 ## Run ▶️
 
 ```bash
-go run ./ authorization_code --authorization-url <authorization-url> --token-url <token-url> --client-id <client-id> --client-secret <client-secret> --scopes "openid profile"
+go run ./ authorization_code --authorization-url <authorization-url> --token-url <token-url> --client-id <client-id> --client-secret <client-secret> --scope "openid profile"
 ```
 
 ## Test

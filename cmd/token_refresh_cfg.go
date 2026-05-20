@@ -25,7 +25,7 @@ func parseTokenRefreshFlags(in ParseInput) (runner CommandRunner, output string,
 
 	var flowConf oidc.TokenRefreshFlowConfig
 	flags.StringVar(&flowConf.RefreshToken, "refresh-token", "", "refresh token to be used for token refresh")
-	flags.StringVar(&flowConf.Scopes, "scopes", "", "set scopes as a space separated list")
+	flags.StringVar(&flowConf.Scope, "scope", "", "set scope as a space separated list")
 	flags.BoolVar(&flowConf.DPoP, "dpop", false, "use dpop-bound refresh tokens")
 
 	runner = &oidc.TokenRefreshFlow{

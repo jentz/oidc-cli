@@ -26,7 +26,7 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 				"--refresh-token", "refresh-token",
-				"--scopes", "openid profile email",
+				"--scope", "openid profile email",
 			},
 			oidc.Config{
 				IssuerURL:             "https://example.com",
@@ -36,13 +36,13 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				ClientSecret:          "client-secret",
 			},
 			oidc.TokenRefreshFlowConfig{
-				Scopes:       "openid profile email",
+				Scope:        "openid profile email",
 				RefreshToken: "refresh-token",
 				DPoP:         false,
 			},
 		},
 		{
-			"only issuer, no scopes",
+			"only issuer, no scope",
 			[]string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
@@ -158,7 +158,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 			[]string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
-				"--scopes", "openid profile email",
+				"--scope", "openid profile email",
 				"--refresh-token", "refresh-token",
 				"--dpop",
 				"--dpop-public-key", "path/to/public-key.pem",
@@ -170,7 +170,7 @@ func TestParseTokenRefreshFlagsError(t *testing.T) {
 			[]string{
 				"--issuer", "https://example.com",
 				"--client-id", "client-id",
-				"--scopes", "openid profile email",
+				"--scope", "openid profile email",
 				"--refresh-token", "refresh-token",
 				"--dpop",
 				"--dpop-private-key", "path/to/private-key.pem",

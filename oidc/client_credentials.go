@@ -14,7 +14,7 @@ type ClientCredentialsFlow struct {
 }
 
 type ClientCredentialsFlowConfig struct {
-	Scopes string
+	Scope string
 }
 
 func (c *ClientCredentialsFlow) Run(ctx context.Context) error {
@@ -24,7 +24,7 @@ func (c *ClientCredentialsFlow) Run(ctx context.Context) error {
 		c.Config.ClientID,
 		c.Config.ClientSecret,
 		c.Config.AuthMethod,
-		c.FlowConfig.Scopes,
+		c.FlowConfig.Scope,
 	)
 
 	resp, err := client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, req)
