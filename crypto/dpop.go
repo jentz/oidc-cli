@@ -156,10 +156,8 @@ func (d *DPoPProofBuilder) parseKeys() error {
 		return fmt.Errorf("unsupported public key type: %T", k)
 	}
 
-	// Derive the signing method from the advertised algorithm so the JWS
-	// header and the signature always agree. Hardcoding a fixed method here
-	// produces proofs that resource servers reject for any key whose alg is
-	// not the default (for example ES384/ES512 or RS384/RS512).
+	// Derive the signing method from the advertised alg; a hardcoded method
+	// would mismatch the header for non-default key sizes and curves.
 	d.signingMethod = jwt.GetSigningMethod(d.alg)
 	if d.signingMethod == nil {
 		return fmt.Errorf("no supported DPoP signing algorithm for key type %T: ECDSA must use P-256, P-384, or P-521, and RSA must be at least 2048 bits", d.publicKey)
