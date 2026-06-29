@@ -162,7 +162,7 @@ func (d *DPoPProofBuilder) parseKeys() error {
 	// not the default (for example ES384/ES512 or RS384/RS512).
 	d.signingMethod = jwt.GetSigningMethod(d.alg)
 	if d.signingMethod == nil {
-		return fmt.Errorf("unsupported signing algorithm %q for key", d.alg)
+		return fmt.Errorf("no supported DPoP signing algorithm for key type %T: ECDSA must use P-256, P-384, or P-521, and RSA must be at least 2048 bits", d.publicKey)
 	}
 	return nil
 }
