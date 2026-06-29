@@ -135,28 +135,34 @@ func (d *DPoPProofBuilder) parseKeys() error {
 		if _, ok := d.privateKey.(*ecdsa.PrivateKey); !ok {
 			return errors.New("private key type does not match public key type")
 		}
-		d.jwk = ecdsaPublicKeyToJWK(d.publicKey.(*ecdsa.PublicKey))
-		d.alg = ecdsaAlgorithmString(d.publicKey.(*ecdsa.PublicKey))
-		d.signingMethod = jwt.SigningMethodES256
+		d.jwk = ecdsaPublicKeyToJWK(k)
+		d.alg = ecdsaAlgorithmString(k)
 
 	case *rsa.PublicKey:
 		if _, ok := d.privateKey.(*rsa.PrivateKey); !ok {
 			return errors.New("private key type does not match public key type")
 		}
-		d.jwk = rsaPublicKeyToJWK(d.publicKey.(*rsa.PublicKey))
-		d.alg = rsaAlgorithmString(d.publicKey.(*rsa.PublicKey))
-		d.signingMethod = jwt.SigningMethodRS256
+		d.jwk = rsaPublicKeyToJWK(k)
+		d.alg = rsaAlgorithmString(k)
 
 	case ed25519.PublicKey:
 		if _, ok := d.privateKey.(ed25519.PrivateKey); !ok {
 			return errors.New("private key type does not match public key type")
 		}
-		d.jwk = ed25519PublicKeyToJWK(d.publicKey.(ed25519.PublicKey))
+		d.jwk = ed25519PublicKeyToJWK(k)
 		d.alg = ed25519AlgorithmString()
-		d.signingMethod = jwt.SigningMethodEdDSA
 
 	default:
 		return fmt.Errorf("unsupported public key type: %T", k)
+	}
+
+	// Derive the signing method from the advertised algorithm so the JWS
+	// header and the signature always agree. Hardcoding a fixed method here
+	// produces proofs that resource servers reject for any key whose alg is
+	// not the default (for example ES384/ES512 or RS384/RS512).
+	d.signingMethod = jwt.GetSigningMethod(d.alg)
+	if d.signingMethod == nil {
+		return fmt.Errorf("unsupported signing algorithm %q for key", d.alg)
 	}
 	return nil
 }
