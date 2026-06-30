@@ -74,6 +74,17 @@ func TestNewCallbackServer(t *testing.T) {
 	}
 }
 
+func TestNewCallbackServerIgnoresNilOption(t *testing.T) {
+	t.Parallel()
+	s, err := NewCallbackServer("http://localhost:8080/callback", nil, nil)
+	if err != nil {
+		t.Fatalf("NewCallbackServer failed: %v", err)
+	}
+	if s.listen == nil {
+		t.Error("nil option must be ignored and listen must fall back to net.Listen")
+	}
+}
+
 func TestCallbackServerStart(t *testing.T) {
 	t.Parallel()
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
@@ -110,6 +121,80 @@ func TestCallbackServerStart(t *testing.T) {
 	case <-listener.closed:
 	case <-time.After(2 * time.Second):
 		t.Error("listener was not closed after shutdown")
+	}
+}
+
+func TestCallbackServerStartWithInjectedListener(t *testing.T) {
+	t.Parallel()
+
+	// Pre-bind a listener on an OS-assigned port so the test does not
+	// depend on the callback URI's port.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to pre-bind listener: %v", err)
+	}
+	defer func() { _ = ln.Close() }()
+
+	// The callback URI carries no port; the injected listener decides it.
+	s, err := NewCallbackServer("http://localhost/callback", nil,
+		WithListenFunc(func(_, _ string) (net.Listener, error) {
+			return ln, nil
+		}))
+	if err != nil {
+		t.Fatalf("NewCallbackServer failed: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	startErr := make(chan error, 1)
+	go func() {
+		startErr <- s.Start(ctx)
+	}()
+
+	// Derive the callback URL from the listener's actual address. Bound the
+	// request so a stalled server fails fast instead of hanging the test run.
+	callbackURL := fmt.Sprintf("http://%s/callback?code=abc123&state=xyz", ln.Addr().String())
+	reqCtx, reqCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer reqCancel()
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, callbackURL, nil)
+	if err != nil {
+		t.Fatalf("failed to build request: %v", err)
+	}
+	httpResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("callback request failed: %v", err)
+	}
+	defer func() {
+		if cerr := httpResp.Body.Close(); cerr != nil {
+			t.Errorf("failed to close response body: %v", cerr)
+		}
+	}()
+	if httpResp.StatusCode != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, httpResp.StatusCode)
+	}
+
+	// Bound the wait so a missing callback fails fast instead of blocking on
+	// WaitForCallback's internal five-minute timeout.
+	waitCtx, waitCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer waitCancel()
+	resp, err := s.WaitForCallback(waitCtx)
+	if err != nil {
+		t.Fatalf("WaitForCallback failed: %v", err)
+	}
+	if resp.Code != "abc123" || resp.State != "xyz" {
+		t.Errorf("expected code=abc123 state=xyz, got code=%q state=%q", resp.Code, resp.State)
+	}
+
+	// Shut the server down and confirm Start returned without a surprise error.
+	cancel()
+	select {
+	case err := <-startErr:
+		if err != nil && !errors.Is(err, context.Canceled) {
+			t.Errorf("Start returned unexpected error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("Start did not return after context cancellation")
 	}
 }
 

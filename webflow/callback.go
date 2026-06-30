@@ -23,8 +23,8 @@ type CallbackServer struct {
 	path     string
 	server   *http.Server
 	response chan *CallbackResponse
-	// listen is the function to create a network listener. If nil, defaults to net.Listen.
-	// This field allows for dependency injection in tests.
+	// listen creates the server's network listener; NewCallbackServer falls
+	// back to net.Listen when WithListenFunc is not given. Override for tests.
 	listen      func(network, addr string) (net.Listener, error)
 	successTmpl *template.Template
 	errorTmpl   *template.Template
@@ -38,7 +38,20 @@ type CallbackResponse struct {
 	ErrorDescription string
 }
 
-func NewCallbackServer(callbackURI string, logger *log.Logger) (*CallbackServer, error) {
+// Option configures a CallbackServer at construction time.
+type Option func(*CallbackServer)
+
+// WithListenFunc overrides the function the server uses to create its network
+// listener. When not supplied (or nil), NewCallbackServer falls back to
+// net.Listen. Injecting a pre-bound listener lets tests drive the server on an
+// OS-assigned port without depending on the callback URI's port.
+func WithListenFunc(fn func(network, addr string) (net.Listener, error)) Option {
+	return func(s *CallbackServer) {
+		s.listen = fn
+	}
+}
+
+func NewCallbackServer(callbackURI string, logger *log.Logger, opts ...Option) (*CallbackServer, error) {
 	u, err := url.Parse(callbackURI)
 	if err != nil {
 		return nil, fmt.Errorf("invalid callback URI: %w", err)
@@ -58,15 +71,27 @@ func NewCallbackServer(callbackURI string, logger *log.Logger) (*CallbackServer,
 		logger = log.Discard()
 	}
 
-	return &CallbackServer{
+	s := &CallbackServer{
 		host:        u.Host,
 		path:        u.Path,
 		response:    make(chan *CallbackResponse, 1),
-		listen:      net.Listen,
 		successTmpl: successTmpl,
 		errorTmpl:   errorTmpl,
 		logger:      logger,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		opt(s)
+	}
+
+	if s.listen == nil {
+		s.listen = net.Listen
+	}
+
+	return s, nil
 }
 
 func (s *CallbackServer) Start(ctx context.Context) error {
