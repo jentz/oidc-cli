@@ -37,16 +37,16 @@ func (c *TokenExchangeFlow) createTokenRequest() *httpclient.TokenRequest {
 	}
 
 	req := httpclient.CreateTokenExchangeRequest(
-		c.Config.ClientID,
-		c.Config.ClientSecret,
-		c.Config.AuthMethod,
+		c.Config.OIDC.ClientID,
+		c.Config.OIDC.ClientSecret,
+		c.Config.OIDC.AuthMethod,
 		input)
 
 	return req
 }
 
 func (c *TokenExchangeFlow) executeTokenRequest(ctx context.Context, tokenRequest *httpclient.TokenRequest) (map[string]any, error) {
-	resp, err := c.Config.Client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, tokenRequest)
+	resp, err := c.Config.Runtime.Client.ExecuteTokenRequest(ctx, c.Config.OIDC.TokenEndpoint, tokenRequest)
 	if err != nil {
 		return nil, fmt.Errorf("token request failed: %w", err)
 	}
@@ -73,5 +73,5 @@ func (c *TokenExchangeFlow) Run(ctx context.Context) error {
 		return err
 	}
 
-	return c.Config.Logger.OutputJSON(tokenData)
+	return c.Config.Runtime.Logger.OutputJSON(tokenData)
 }

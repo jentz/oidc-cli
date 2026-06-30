@@ -29,11 +29,13 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 				"--accept-header", "jwt",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
-				IntrospectionEndpoint: "https://example.com/introspection",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
+					IntrospectionEndpoint: "https://example.com/introspection",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.IntrospectFlowConfig{
 				BearerToken:     "",
@@ -51,11 +53,13 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 				"--token", "token",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				IntrospectionEndpoint: "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					IntrospectionEndpoint: "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.IntrospectFlowConfig{
 				BearerToken:     "",
@@ -73,11 +77,13 @@ func TestParseIntrospectFlagsResult(t *testing.T) {
 				"--token", "token",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				IntrospectionEndpoint: "",
-				ClientID:              "client-id",
-				ClientSecret:          "",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					IntrospectionEndpoint: "",
+					ClientID:              "client-id",
+					ClientSecret:          "",
+				},
 			},
 			oidc.IntrospectFlowConfig{
 				BearerToken:     "bearer",
@@ -268,11 +274,13 @@ func TestParseIntrospectFlagsCustomArgs(t *testing.T) {
 	}
 	// Assert OIDC config
 	wantOIDC := oidc.Config{
-		IssuerURL:             "https://example.com",
-		DiscoveryEndpoint:     "",
-		IntrospectionEndpoint: "",
-		ClientID:              "client-id",
-		ClientSecret:          "client-secret",
+		OIDC: oidc.OIDCConfig{
+			IssuerURL:             "https://example.com",
+			DiscoveryEndpoint:     "",
+			IntrospectionEndpoint: "",
+			ClientID:              "client-id",
+			ClientSecret:          "client-secret",
+		},
 	}
 	if !reflect.DeepEqual(*f.Config, wantOIDC) {
 		t.Errorf("OIDC Config got %+v, want %+v", *f.Config, wantOIDC)

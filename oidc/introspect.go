@@ -21,12 +21,12 @@ type IntrospectFlowConfig struct {
 }
 
 func (c *IntrospectFlow) Run(ctx context.Context) error {
-	client := c.Config.Client
+	client := c.Config.Runtime.Client
 
 	req := &httpclient.IntrospectionRequest{
-		AuthMethod:      c.Config.AuthMethod,
-		ClientID:        c.Config.ClientID,
-		ClientSecret:    c.Config.ClientSecret,
+		AuthMethod:      c.Config.OIDC.AuthMethod,
+		ClientID:        c.Config.OIDC.ClientID,
+		ClientSecret:    c.Config.OIDC.ClientSecret,
 		BearerToken:     c.FlowConfig.BearerToken,
 		Token:           c.FlowConfig.Token,
 		TokenTypeHint:   c.FlowConfig.TokenTypeHint,
@@ -34,7 +34,7 @@ func (c *IntrospectFlow) Run(ctx context.Context) error {
 		CustomArgs:      c.FlowConfig.CustomArgs,
 	}
 
-	resp, err := client.ExecuteIntrospectionRequest(ctx, c.Config.IntrospectionEndpoint, req, nil /* no custom headers */)
+	resp, err := client.ExecuteIntrospectionRequest(ctx, c.Config.OIDC.IntrospectionEndpoint, req, nil /* no custom headers */)
 	if err != nil {
 		return fmt.Errorf("introspection request failed: %w", err)
 	}
@@ -44,5 +44,5 @@ func (c *IntrospectFlow) Run(ctx context.Context) error {
 		return httpclient.WrapError(err, "introspection")
 	}
 
-	return c.Config.Logger.OutputJSON(introspectionData)
+	return c.Config.Runtime.Logger.OutputJSON(introspectionData)
 }

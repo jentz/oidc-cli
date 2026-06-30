@@ -14,12 +14,12 @@ func parseClientCredentialsFlags(in ParseInput) (runner CommandRunner, output st
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
-	flags.StringVar(&oidcConf.IssuerURL, "issuer", oidcConf.IssuerURL, "set issuer url (required)")
-	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", oidcConf.DiscoveryEndpoint, "override discovery url")
-	flags.StringVar(&oidcConf.TokenEndpoint, "token-url", "", "override token url")
-	flags.StringVar(&oidcConf.ClientID, "client-id", oidcConf.ClientID, "set client ID (required)")
-	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret (required)")
-	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.StringVar(&oidcConf.OIDC.IssuerURL, "issuer", oidcConf.OIDC.IssuerURL, "set issuer url (required)")
+	flags.StringVar(&oidcConf.OIDC.DiscoveryEndpoint, "discovery-url", oidcConf.OIDC.DiscoveryEndpoint, "override discovery url")
+	flags.StringVar(&oidcConf.OIDC.TokenEndpoint, "token-url", "", "override token url")
+	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
+	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required)")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
 
 	var flowConf oidc.ClientCredentialsFlowConfig
 	flags.StringVar(&flowConf.Scope, "scope", "", "set scope as a space separated list")
@@ -39,15 +39,15 @@ func parseClientCredentialsFlags(in ParseInput) (runner CommandRunner, output st
 		message   string
 	}{
 		{
-			oidcConf.IssuerURL == "",
+			oidcConf.OIDC.IssuerURL == "",
 			"issuer is required",
 		},
 		{
-			oidcConf.ClientID == "",
+			oidcConf.OIDC.ClientID == "",
 			"client-id is required",
 		},
 		{
-			oidcConf.ClientSecret == "",
+			oidcConf.OIDC.ClientSecret == "",
 			"client-secret is required",
 		},
 	}

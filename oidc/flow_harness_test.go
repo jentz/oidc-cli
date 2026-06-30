@@ -176,16 +176,20 @@ func newReadyConfig(t *testing.T, opts ...fixtureOption) *flowFixture {
 	})
 
 	fixture.config = &Config{
-		ClientID:                           settings.clientID,
-		ClientSecret:                       settings.clientSecret,
-		AuthMethod:                         settings.authMethod,
-		AuthorizationEndpoint:              testAuthorizationEndpoint,
-		PushedAuthorizationRequestEndpoint: testPAREndpoint,
-		DeviceAuthorizationEndpoint:        testDeviceAuthEndpoint,
-		TokenEndpoint:                      testTokenEndpoint,
-		IntrospectionEndpoint:              testIntrospectionEndpoint,
-		Client:                             client,
-		Logger:                             logger,
+		OIDC: OIDCConfig{
+			ClientID:                           settings.clientID,
+			ClientSecret:                       settings.clientSecret,
+			AuthMethod:                         settings.authMethod,
+			AuthorizationEndpoint:              testAuthorizationEndpoint,
+			PushedAuthorizationRequestEndpoint: testPAREndpoint,
+			DeviceAuthorizationEndpoint:        testDeviceAuthEndpoint,
+			TokenEndpoint:                      testTokenEndpoint,
+			IntrospectionEndpoint:              testIntrospectionEndpoint,
+		},
+		Runtime: Runtime{
+			Client: client,
+			Logger: logger,
+		},
 	}
 
 	if settings.dpopKeys {

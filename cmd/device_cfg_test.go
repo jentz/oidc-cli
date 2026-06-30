@@ -32,15 +32,18 @@ func TestParseDeviceFlags(t *testing.T) {
 				"--dpop-public-key", "path/to/public-key.pem",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
-				AuthorizationEndpoint: "https://example.com/authorize",
-				TokenEndpoint:         "https://example.com/token",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
-				SkipTLSVerify:         true,
-				DPoPPrivateKeyFile:    "path/to/private-key.pem",
-				DPoPPublicKeyFile:     "path/to/public-key.pem",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
+					AuthorizationEndpoint: "https://example.com/authorize",
+					TokenEndpoint:         "https://example.com/token",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
+				DPoPKeys: oidc.DPoPKeys{
+					PrivateKeyFile: "path/to/private-key.pem",
+					PublicKeyFile:  "path/to/public-key.pem",
+				},
 			},
 			oidc.DeviceFlowConfig{
 				Scope: "openid profile email",
@@ -56,12 +59,14 @@ func TestParseDeviceFlags(t *testing.T) {
 				"--scope", "openid profile email",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					AuthorizationEndpoint: "",
+					TokenEndpoint:         "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.DeviceFlowConfig{
 				Scope: "openid profile email",
@@ -76,12 +81,14 @@ func TestParseDeviceFlags(t *testing.T) {
 				"--client-secret", "client-secret",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					AuthorizationEndpoint: "",
+					TokenEndpoint:         "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.DeviceFlowConfig{
 				Scope: "openid",
@@ -100,14 +107,18 @@ func TestParseDeviceFlags(t *testing.T) {
 				"--dpop-public-key", "path/to/public-key.pem",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
-				DPoPPrivateKeyFile:    "path/to/private-key.pem",
-				DPoPPublicKeyFile:     "path/to/public-key.pem",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					AuthorizationEndpoint: "",
+					TokenEndpoint:         "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
+				DPoPKeys: oidc.DPoPKeys{
+					PrivateKeyFile: "path/to/private-key.pem",
+					PublicKeyFile:  "path/to/public-key.pem",
+				},
 			},
 			oidc.DeviceFlowConfig{
 				Scope: "openid profile email",
@@ -124,12 +135,14 @@ func TestParseDeviceFlags(t *testing.T) {
 				"--scope", "openid profile email",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					AuthorizationEndpoint: "",
+					TokenEndpoint:         "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.DeviceFlowConfig{
 				Scope: "openid", // expecting default value as argument is not parsed

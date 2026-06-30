@@ -15,12 +15,12 @@ func parseIntrospectFlags(in ParseInput) (runner CommandRunner, output string, e
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
-	flags.StringVar(&oidcConf.IssuerURL, "issuer", oidcConf.IssuerURL, "set issuer url (required)")
-	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", oidcConf.DiscoveryEndpoint, "override discovery url")
-	flags.StringVar(&oidcConf.IntrospectionEndpoint, "introspection-url", "", "override introspection url")
-	flags.StringVar(&oidcConf.ClientID, "client-id", oidcConf.ClientID, "set client ID (required)")
-	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret (required unless bearer token is provided)")
-	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.StringVar(&oidcConf.OIDC.IssuerURL, "issuer", oidcConf.OIDC.IssuerURL, "set issuer url (required)")
+	flags.StringVar(&oidcConf.OIDC.DiscoveryEndpoint, "discovery-url", oidcConf.OIDC.DiscoveryEndpoint, "override discovery url")
+	flags.StringVar(&oidcConf.OIDC.IntrospectionEndpoint, "introspection-url", "", "override introspection url")
+	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
+	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required unless bearer token is provided)")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
 
 	var flowConf oidc.IntrospectFlowConfig
 	flags.StringVar(&flowConf.BearerToken, "bearer-token", "", "bearer token for authorization (required unless client secret is provided)")
@@ -65,15 +65,15 @@ func parseIntrospectFlags(in ParseInput) (runner CommandRunner, output string, e
 		message   string
 	}{
 		{
-			oidcConf.IssuerURL == "",
+			oidcConf.OIDC.IssuerURL == "",
 			"issuer is required",
 		},
 		{
-			oidcConf.ClientID == "",
+			oidcConf.OIDC.ClientID == "",
 			"client-id is required",
 		},
 		{
-			oidcConf.ClientSecret == "" && flowConf.BearerToken == "",
+			oidcConf.OIDC.ClientSecret == "" && flowConf.BearerToken == "",
 			"client-secret or bearer-token is required",
 		},
 		{

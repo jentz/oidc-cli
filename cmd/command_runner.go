@@ -132,10 +132,10 @@ func RunCommand(name string, args []string, globalConf *oidc.Config, logger *log
 }
 
 func prepareOIDCConfig(ctx context.Context, conf *oidc.Config) error {
-	if err := conf.DiscoverEndpoints(ctx); err != nil {
+	if err := conf.OIDC.DiscoverEndpoints(ctx, conf.Runtime.Client); err != nil {
 		return fmt.Errorf("failed to discover endpoints: %w", err)
 	}
-	if err := conf.ReadKeyFiles(); err != nil {
+	if err := conf.DPoPKeys.Load(); err != nil {
 		return fmt.Errorf("failed to read key files: %w", err)
 	}
 	return nil

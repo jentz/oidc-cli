@@ -29,12 +29,12 @@ type DiscoveryConfiguration struct {
 // Discover fetches OIDC configuration from the discovery endpoint
 // If wellKnownURL is provided, it will be used as the discovery endpoint
 // Otherwise, the standard discovery endpoint will be used
-func (c *Config) Discover(ctx context.Context, client *httpclient.Client) (*DiscoveryConfiguration, error) {
+func (o *OIDCConfig) Discover(ctx context.Context, client *httpclient.Client) (*DiscoveryConfiguration, error) {
 	var discoveryURL string
-	if c.DiscoveryEndpoint != "" {
-		discoveryURL = c.DiscoveryEndpoint
+	if o.DiscoveryEndpoint != "" {
+		discoveryURL = o.DiscoveryEndpoint
 	} else {
-		discoveryURL = strings.TrimRight(c.IssuerURL, "/") + DiscoveryEndpoint
+		discoveryURL = strings.TrimRight(o.IssuerURL, "/") + DiscoveryEndpoint
 	}
 
 	discoveryConfig := &DiscoveryConfiguration{}
@@ -52,7 +52,7 @@ func (c *Config) Discover(ctx context.Context, client *httpclient.Client) (*Disc
 	}
 
 	// Validate issuer - only if using standard discovery endpoint
-	if c.DiscoveryEndpoint == "" && discoveryConfig.Issuer != c.IssuerURL {
+	if o.DiscoveryEndpoint == "" && discoveryConfig.Issuer != o.IssuerURL {
 		return nil, httpclient.ErrIssuerInvalid
 	}
 
