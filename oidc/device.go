@@ -66,13 +66,13 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		verificationURI := deviceAuthResp.VerificationURIComplete
 		logger.Printf("device verification uri: %s\n", verificationURI)
 		if err := client.OpenURL(verificationURI); err != nil {
-			logger.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
+			logger.Errorf("failed to open verification uri %s in the browser: %v\n", verificationURI, err)
 		}
 	} else {
 		verificationURI := deviceAuthResp.VerificationURI
 		logger.Printf("device verification uri: %s, verification code: %s\n", verificationURI, deviceAuthResp.UserCode)
 		if err := client.OpenURL(verificationURI); err != nil {
-			logger.Errorf("failed to open verification uri %s in the default browser: %v\n", verificationURI, err)
+			logger.Errorf("failed to open verification uri %s in the browser: %v\n", verificationURI, err)
 		}
 	}
 
