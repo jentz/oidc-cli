@@ -205,7 +205,7 @@ func TestOutputJSON(t *testing.T) {
 		// A channel cannot be marshaled, so MarshalIndent fails.
 		err := logger.OutputJSON(make(chan int))
 		if err == nil {
-			t.Fatal("OutputJSON error = nil, want error for unmarshalable value")
+			t.Fatal("OutputJSON error = nil, want error when the value cannot be marshaled")
 		}
 		if !strings.Contains(err.Error(), "failed to format JSON output") {
 			t.Errorf("error = %q, want it to mention JSON formatting", err)
