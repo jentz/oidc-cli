@@ -106,11 +106,11 @@ func (c *Config) ReadKeyFiles() error {
 	if c.DPoPPublicKeyFile != "" {
 		pem, err := crypto.ReadPEMBlockFromFile(c.DPoPPublicKeyFile)
 		if err != nil {
-			return fmt.Errorf("failed to read public key file: %v", err)
+			return fmt.Errorf("failed to read public key file: %w", err)
 		}
 		c.DPoPKeys.Public, err = crypto.ParsePublicKeyPEMBlock(pem)
 		if err != nil {
-			return fmt.Errorf("failed to parse public key: %v", err)
+			return fmt.Errorf("failed to parse public key: %w", err)
 		}
 	}
 	return nil

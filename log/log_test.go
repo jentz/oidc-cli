@@ -198,7 +198,7 @@ func TestOutputJSON(t *testing.T) {
 		}
 	})
 
-	t.Run("returns an error for an unmarshalable value", func(t *testing.T) {
+	t.Run("returns an error when the value cannot be marshaled", func(t *testing.T) {
 		t.Parallel()
 		logger, _, outBuf := setupTestLogger(false)
 
