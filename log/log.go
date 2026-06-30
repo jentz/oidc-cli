@@ -1,6 +1,7 @@
 package log
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -104,6 +105,17 @@ func (l *Logger) Outputf(format string, args ...interface{}) {
 // Outputln writes line output to stdout (always).
 func (l *Logger) Outputln(args ...interface{}) {
 	_, _ = fmt.Fprintln(l.stdOut, args...)
+}
+
+// OutputJSON renders v as indented JSON followed by a newline to stdout. It is
+// the shared tail for flows that print a response.
+func (l *Logger) OutputJSON(v any) error {
+	prettyJSON, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to format JSON output: %w", err)
+	}
+	l.Outputf("%s\n", string(prettyJSON))
+	return nil
 }
 
 // Verbosef writes formatted output to stdout (only in verbose mode)

@@ -171,6 +171,51 @@ func TestOutputLogging(t *testing.T) {
 	}
 }
 
+func TestOutputJSON(t *testing.T) {
+	t.Parallel()
+
+	t.Run("renders indented JSON with a trailing newline", func(t *testing.T) {
+		t.Parallel()
+		logger, errBuf, outBuf := setupTestLogger(false)
+
+		err := logger.OutputJSON(map[string]any{
+			"access_token": "abc123",
+			"expires_in":   3600,
+		})
+		if err != nil {
+			t.Fatalf("OutputJSON returned error: %v", err)
+		}
+
+		// Pin the exact bytes a flow emits: two-space indent, keys sorted by the
+		// encoder, one trailing newline. This is the contract the flow tails rely
+		// on staying byte-for-byte stable.
+		want := "{\n  \"access_token\": \"abc123\",\n  \"expires_in\": 3600\n}\n"
+		if got := outBuf.String(); got != want {
+			t.Errorf("stdout = %q, want %q", got, want)
+		}
+		if got := errBuf.String(); got != "" {
+			t.Errorf("stderr = %q, want empty", got)
+		}
+	})
+
+	t.Run("returns an error for an unmarshalable value", func(t *testing.T) {
+		t.Parallel()
+		logger, _, outBuf := setupTestLogger(false)
+
+		// A channel cannot be marshaled, so MarshalIndent fails.
+		err := logger.OutputJSON(make(chan int))
+		if err == nil {
+			t.Fatal("OutputJSON error = nil, want error for unmarshalable value")
+		}
+		if !strings.Contains(err.Error(), "failed to format JSON output") {
+			t.Errorf("error = %q, want it to mention JSON formatting", err)
+		}
+		if got := outBuf.String(); got != "" {
+			t.Errorf("stdout = %q, want empty on error", got)
+		}
+	})
+}
+
 func TestVerboseOutputLogging(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

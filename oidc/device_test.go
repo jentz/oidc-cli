@@ -133,6 +133,64 @@ func TestDeviceFlowRunVerificationURIComplete(t *testing.T) {
 	}
 }
 
+// TestDeviceFlowRunPublicClient pins the PKCE no-secret fallback on the device
+// flow: with no client secret, the shared PKCE setup switches to no client
+// authentication, so the polling token request carries client_id in the body
+// and no Authorization header, and PKCE rides both the device-authorization and
+// token requests.
+func TestDeviceFlowRunPublicClient(t *testing.T) {
+	t.Parallel()
+
+	deviceAuthBody := `{"device_code":"dev-code-1","verification_uri":"https://op.example.com/device","interval":5,"expires_in":1800}`
+
+	fixture := newReadyConfig(t,
+		withPublicClient(),
+		withBrowser(&recordingBrowser{}),
+		withRoute(testDeviceAuthEndpoint, http.StatusOK, deviceAuthBody),
+		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
+	)
+
+	flow := &DeviceFlow{
+		Config: fixture.config,
+		FlowConfig: &DeviceFlowConfig{
+			Scope: "openid",
+			PKCE:  true,
+		},
+	}
+
+	if err := flow.Run(context.Background()); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if len(fixture.requests) != 2 {
+		t.Fatalf("got %d emitted requests, want 2 (device-auth + token)", len(fixture.requests))
+	}
+	deviceReq, tokenReq := fixture.requests[0], fixture.requests[1]
+
+	// PKCE must reach the device-authorization request as an S256 challenge.
+	if got := deviceReq.Form.Get("code_challenge_method"); got != "S256" {
+		t.Errorf("code_challenge_method = %q, want S256", got)
+	}
+	if deviceReq.Form.Get("code_challenge") == "" {
+		t.Error("code_challenge is empty, want the PKCE challenge on the device-auth request")
+	}
+
+	// Public-client token request: no client authentication header, client_id in
+	// the body, no client_secret, and the PKCE verifier present.
+	if got := tokenReq.Header.Get("Authorization"); got != "" {
+		t.Errorf("Authorization = %q, want no header for a public client", got)
+	}
+	if got := tokenReq.Form.Get("client_id"); got != testClientID {
+		t.Errorf("client_id = %q, want %q in the body", got, testClientID)
+	}
+	if tokenReq.Form.Has("client_secret") {
+		t.Errorf("client_secret = %q, want absent for a public client", tokenReq.Form.Get("client_secret"))
+	}
+	if tokenReq.Form.Get("code_verifier") == "" {
+		t.Error("code_verifier is empty, want the PKCE verifier on the token request")
+	}
+}
+
 // TestDeviceFlowRunDPoP verifies the polling token request carries a valid DPoP
 // proof bound to the configured key.
 func TestDeviceFlowRunDPoP(t *testing.T) {

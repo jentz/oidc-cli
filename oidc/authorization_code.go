@@ -2,7 +2,6 @@ package oidc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/jentz/oidc-cli/crypto"
@@ -28,20 +27,6 @@ type AuthorizationCodeFlowConfig struct {
 	PKCE        bool
 	PAR         bool
 	DPoP        bool
-}
-
-func (c *AuthorizationCodeFlow) setupPKCE() (string, error) {
-	if !c.FlowConfig.PKCE {
-		return "", nil
-	}
-	if c.Config.ClientSecret == "" {
-		c.Config.AuthMethod = httpclient.AuthMethodNone
-	}
-	codeVerifier, err := crypto.GeneratePKCECodeVerifier()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate PKCE code verifier: %w", err)
-	}
-	return codeVerifier, nil
 }
 
 func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeVerifier string) (*httpclient.AuthorizationCodeRequest, error) {
@@ -120,7 +105,7 @@ func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, c
 
 func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 	// Handle PKCE
-	codeVerifier, err := c.setupPKCE()
+	codeVerifier, err := c.Config.setupPKCE(c.FlowConfig.PKCE)
 	if err != nil {
 		return err
 	}
@@ -137,13 +122,7 @@ func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 	// Handle DPoP
 	var dpopFunc httpclient.DPoPProofFunc
 	if c.FlowConfig.DPoP {
-		dpopFunc = func(method, url string) (string, error) {
-			proof, err := crypto.NewDPoPProof(c.Config.DPoPPublicKey, c.Config.DPoPPrivateKey, method, url)
-			if err != nil {
-				return "", err
-			}
-			return proof.String(), nil
-		}
+		dpopFunc = c.Config.DPoPKeys.ProofFunc()
 	}
 	// Exchange authorization code for access token
 	tokenData, err := c.executeTokenRequest(ctx, authResp.Code, codeVerifier, dpopFunc)
@@ -151,11 +130,5 @@ func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 		return err
 	}
 
-	// Print available response data
-	prettyJSON, err := json.MarshalIndent(tokenData, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format token response: %w", err)
-	}
-	c.Config.Logger.Outputf("%s\n", string(prettyJSON))
-	return nil
+	return c.Config.Logger.OutputJSON(tokenData)
 }
