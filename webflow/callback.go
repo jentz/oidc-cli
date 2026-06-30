@@ -81,6 +81,9 @@ func NewCallbackServer(callbackURI string, logger *log.Logger, opts ...Option) (
 	}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		opt(s)
 	}
 

@@ -74,6 +74,20 @@ func TestNewCallbackServer(t *testing.T) {
 	}
 }
 
+func TestNewCallbackServerIgnoresNilOption(t *testing.T) {
+	t.Parallel()
+	s, err := NewCallbackServer("http://localhost:8080/callback", nil, nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "failed to parse") {
+			t.Skipf("Skipping due to missing template files: %v", err)
+		}
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if s.listen == nil {
+		t.Error("nil option must be ignored and listen must fall back to net.Listen")
+	}
+}
+
 func TestCallbackServerStart(t *testing.T) {
 	t.Parallel()
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil)
@@ -130,7 +144,10 @@ func TestCallbackServerStartWithInjectedListener(t *testing.T) {
 			return ln, nil
 		}))
 	if err != nil {
-		t.Skipf("Skipping due to template parsing error: %v", err)
+		if strings.Contains(err.Error(), "failed to parse") {
+			t.Skipf("Skipping due to missing template files: %v", err)
+		}
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -141,9 +158,12 @@ func TestCallbackServerStartWithInjectedListener(t *testing.T) {
 		startErr <- s.Start(ctx)
 	}()
 
-	// Derive the callback URL from the listener's actual address.
+	// Derive the callback URL from the listener's actual address. Bound the
+	// request so a stalled server fails fast instead of hanging the test run.
 	callbackURL := fmt.Sprintf("http://%s/callback?code=abc123&state=xyz", ln.Addr().String())
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, callbackURL, nil)
+	reqCtx, reqCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer reqCancel()
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, callbackURL, nil)
 	if err != nil {
 		t.Fatalf("failed to build request: %v", err)
 	}
