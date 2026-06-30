@@ -156,6 +156,9 @@ func captureRequest(t *testing.T, req *http.Request) *capturedRequest {
 	}
 
 	if req.Body != nil {
+		// The RoundTripper contract makes the transport responsible for closing
+		// the request body; honor it even though these test bodies are NopClosers.
+		defer func() { _ = req.Body.Close() }()
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			t.Fatalf("reading request body: %v", err)
