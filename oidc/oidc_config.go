@@ -124,12 +124,14 @@ func (c *Config) setupPKCE(enabled bool) (string, error) {
 	if !enabled {
 		return "", nil
 	}
-	if c.ClientSecret == "" {
-		c.AuthMethod = httpclient.AuthMethodNone
-	}
 	codeVerifier, err := crypto.GeneratePKCECodeVerifier()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate PKCE code verifier: %w", err)
+	}
+	// Flip the auth method only after the fallible step, so a failed generation
+	// leaves the config untouched.
+	if c.ClientSecret == "" {
+		c.AuthMethod = httpclient.AuthMethodNone
 	}
 	return codeVerifier, nil
 }
