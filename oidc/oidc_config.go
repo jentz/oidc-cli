@@ -25,8 +25,7 @@ type Config struct {
 	AuthMethod                         httpclient.AuthMethod
 	DPoPPrivateKeyFile                 string
 	DPoPPublicKeyFile                  string
-	DPoPPrivateKey                     any
-	DPoPPublicKey                      any
+	DPoPKeys                           DPoPKeys
 	Client                             *httpclient.Client
 	Logger                             *log.Logger
 }
@@ -97,7 +96,7 @@ func (c *Config) ReadKeyFiles() error {
 		if err != nil {
 			return fmt.Errorf("could not read private key file: %w", err)
 		}
-		c.DPoPPrivateKey, err = crypto.ParsePrivateKeyPEMBlock(pem)
+		c.DPoPKeys.Private, err = crypto.ParsePrivateKeyPEMBlock(pem)
 		if err != nil {
 			return fmt.Errorf("could not parse private key: %w", err)
 		}
@@ -107,12 +106,32 @@ func (c *Config) ReadKeyFiles() error {
 	if c.DPoPPublicKeyFile != "" {
 		pem, err := crypto.ReadPEMBlockFromFile(c.DPoPPublicKeyFile)
 		if err != nil {
-			return fmt.Errorf("failed to read public key file: %v", err)
+			return fmt.Errorf("failed to read public key file: %w", err)
 		}
-		c.DPoPPublicKey, err = crypto.ParsePublicKeyPEMBlock(pem)
+		c.DPoPKeys.Public, err = crypto.ParsePublicKeyPEMBlock(pem)
 		if err != nil {
-			return fmt.Errorf("failed to parse public key: %v", err)
+			return fmt.Errorf("failed to parse public key: %w", err)
 		}
 	}
 	return nil
+}
+
+// setupPKCE generates a PKCE code verifier when enabled, returning an empty
+// verifier when not. A client with no secret cannot authenticate at the token
+// endpoint, so PKCE secures a public client and the auth method falls back to
+// none.
+func (c *Config) setupPKCE(enabled bool) (string, error) {
+	if !enabled {
+		return "", nil
+	}
+	codeVerifier, err := crypto.GeneratePKCECodeVerifier()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PKCE code verifier: %w", err)
+	}
+	// Flip the auth method only after the fallible step, so a failed generation
+	// leaves the config untouched.
+	if c.ClientSecret == "" {
+		c.AuthMethod = httpclient.AuthMethodNone
+	}
+	return codeVerifier, nil
 }

@@ -193,8 +193,7 @@ func newReadyConfig(t *testing.T, opts ...fixtureOption) *flowFixture {
 		if err != nil {
 			t.Fatalf("generating DPoP key: %v", err)
 		}
-		fixture.config.DPoPPublicKey = &priv.PublicKey
-		fixture.config.DPoPPrivateKey = priv
+		fixture.config.DPoPKeys = DPoPKeys{Public: &priv.PublicKey, Private: priv}
 		fixture.dpopPublicKey = &priv.PublicKey
 	}
 

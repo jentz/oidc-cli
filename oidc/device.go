@@ -2,7 +2,6 @@ package oidc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/jentz/oidc-cli/crypto"
@@ -20,23 +19,9 @@ type DeviceFlowConfig struct {
 	PKCE  bool
 }
 
-func (c *DeviceFlow) setupPKCE() (string, error) {
-	if !c.FlowConfig.PKCE {
-		return "", nil
-	}
-	if c.Config.ClientSecret == "" {
-		c.Config.AuthMethod = httpclient.AuthMethodNone
-	}
-	codeVerifier, err := crypto.GeneratePKCECodeVerifier()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate PKCE code verifier: %w", err)
-	}
-	return codeVerifier, nil
-}
-
 func (c *DeviceFlow) Run(ctx context.Context) error {
 	client := c.Config.Client
-	codeVerifier, err := c.setupPKCE()
+	codeVerifier, err := c.Config.setupPKCE(c.FlowConfig.PKCE)
 	if err != nil {
 		return err
 	}
@@ -86,13 +71,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 	)
 
 	if c.FlowConfig.DPoP {
-		tokenReq.DPoP = func(method, url string) (string, error) {
-			proof, err := crypto.NewDPoPProof(c.Config.DPoPPublicKey, c.Config.DPoPPrivateKey, method, url)
-			if err != nil {
-				return "", err
-			}
-			return proof.String(), nil
-		}
+		tokenReq.DPoP = c.Config.DPoPKeys.ProofFunc()
 	}
 
 	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
@@ -104,11 +83,5 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		return httpclient.WrapError(err, "token")
 	}
 
-	// Print available response data
-	prettyJSON, err := json.MarshalIndent(tokenData, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format token response: %w", err)
-	}
-	logger.Outputf("%s\n", string(prettyJSON))
-	return nil
+	return logger.OutputJSON(tokenData)
 }
