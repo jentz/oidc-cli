@@ -78,10 +78,7 @@ func TestNewCallbackServerIgnoresNilOption(t *testing.T) {
 	t.Parallel()
 	s, err := NewCallbackServer("http://localhost:8080/callback", nil, nil)
 	if err != nil {
-		if strings.Contains(err.Error(), "failed to parse") {
-			t.Skipf("Skipping due to missing template files: %v", err)
-		}
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("NewCallbackServer failed: %v", err)
 	}
 	if s.listen == nil {
 		t.Error("nil option must be ignored and listen must fall back to net.Listen")
@@ -144,10 +141,7 @@ func TestCallbackServerStartWithInjectedListener(t *testing.T) {
 			return ln, nil
 		}))
 	if err != nil {
-		if strings.Contains(err.Error(), "failed to parse") {
-			t.Skipf("Skipping due to missing template files: %v", err)
-		}
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("NewCallbackServer failed: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
