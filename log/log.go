@@ -112,7 +112,7 @@ func (l *Logger) Outputln(args ...interface{}) {
 func (l *Logger) OutputJSON(v any) error {
 	prettyJSON, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
+		return fmt.Errorf("failed to format %T as JSON: %w", v, err)
 	}
 	l.Outputf("%s\n", string(prettyJSON))
 	return nil

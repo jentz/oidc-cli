@@ -207,8 +207,13 @@ func TestOutputJSON(t *testing.T) {
 		if err == nil {
 			t.Fatal("OutputJSON error = nil, want error when the value cannot be marshaled")
 		}
-		if !strings.Contains(err.Error(), "failed to format JSON output") {
+		if !strings.Contains(err.Error(), "failed to format") {
 			t.Errorf("error = %q, want it to mention JSON formatting", err)
+		}
+		// The message names the concrete type so a failure points at the
+		// offending value, not just "something didn't marshal".
+		if !strings.Contains(err.Error(), "chan int") {
+			t.Errorf("error = %q, want it to name the offending type", err)
 		}
 		if got := outBuf.String(); got != "" {
 			t.Errorf("stdout = %q, want empty on error", got)
