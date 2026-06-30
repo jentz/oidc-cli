@@ -28,7 +28,7 @@ func TestClientDiscover(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		config   *Config
+		config   *OIDCConfig
 		response *http.Response
 		want     *DiscoveryConfiguration
 		wantErr  bool
@@ -36,7 +36,7 @@ func TestClientDiscover(t *testing.T) {
 	}{
 		{
 			name: "successful discovery",
-			config: &Config{
+			config: &OIDCConfig{
 				IssuerURL: "https://example.com",
 			},
 			response: &http.Response{
@@ -53,7 +53,7 @@ func TestClientDiscover(t *testing.T) {
 		},
 		{
 			name: "custom discovery endpoint",
-			config: &Config{
+			config: &OIDCConfig{
 				IssuerURL:         "https://example.com",
 				DiscoveryEndpoint: "https://example.com/.well-known/custom",
 			},
@@ -71,7 +71,7 @@ func TestClientDiscover(t *testing.T) {
 		},
 		{
 			name: "invalid issuer",
-			config: &Config{
+			config: &OIDCConfig{
 				IssuerURL: "https://example.com",
 			},
 			response: &http.Response{
@@ -83,7 +83,7 @@ func TestClientDiscover(t *testing.T) {
 		},
 		{
 			name: "http error",
-			config: &Config{
+			config: &OIDCConfig{
 				IssuerURL: "https://example.com",
 			},
 			response: &http.Response{

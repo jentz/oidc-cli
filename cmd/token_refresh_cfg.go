@@ -14,14 +14,14 @@ func parseTokenRefreshFlags(in ParseInput) (runner CommandRunner, output string,
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
-	flags.StringVar(&oidcConf.IssuerURL, "issuer", oidcConf.IssuerURL, "set issuer url (required)")
-	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", oidcConf.DiscoveryEndpoint, "override discovery url")
-	flags.StringVar(&oidcConf.IntrospectionEndpoint, "introspection-url", "", "override introspection url")
-	flags.StringVar(&oidcConf.ClientID, "client-id", oidcConf.ClientID, "set client ID")
-	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret")
-	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
-	flags.StringVar(&oidcConf.DPoPPrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
-	flags.StringVar(&oidcConf.DPoPPublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
+	flags.StringVar(&oidcConf.OIDC.IssuerURL, "issuer", oidcConf.OIDC.IssuerURL, "set issuer url (required)")
+	flags.StringVar(&oidcConf.OIDC.DiscoveryEndpoint, "discovery-url", oidcConf.OIDC.DiscoveryEndpoint, "override discovery url")
+	flags.StringVar(&oidcConf.OIDC.IntrospectionEndpoint, "introspection-url", "", "override introspection url")
+	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID")
+	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.StringVar(&oidcConf.DPoPKeys.PrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
+	flags.StringVar(&oidcConf.DPoPKeys.PublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
 
 	var flowConf oidc.TokenRefreshFlowConfig
 	flags.StringVar(&flowConf.RefreshToken, "refresh-token", "", "refresh token to be used for token refresh")
@@ -51,7 +51,7 @@ func parseTokenRefreshFlags(in ParseInput) (runner CommandRunner, output string,
 		message   string
 	}{
 		{
-			oidcConf.IssuerURL == "",
+			oidcConf.OIDC.IssuerURL == "",
 			"issuer is required",
 		},
 		{
@@ -59,7 +59,7 @@ func parseTokenRefreshFlags(in ParseInput) (runner CommandRunner, output string,
 			"refresh token is required",
 		},
 		{
-			flowConf.DPoP && (oidcConf.DPoPPrivateKeyFile == "" || oidcConf.DPoPPublicKeyFile == ""),
+			flowConf.DPoP && (oidcConf.DPoPKeys.PrivateKeyFile == "" || oidcConf.DPoPKeys.PublicKeyFile == ""),
 			"both dpop-private-key and dpop-public-key are required when using DPoP",
 		},
 	}

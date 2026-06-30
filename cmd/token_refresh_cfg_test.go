@@ -29,11 +29,13 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				"--scope", "openid profile email",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
-				IntrospectionEndpoint: "https://example.com/introspection",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
+					IntrospectionEndpoint: "https://example.com/introspection",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.TokenRefreshFlowConfig{
 				Scope:        "openid profile email",
@@ -50,11 +52,13 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				"--refresh-token", "refresh-token",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				IntrospectionEndpoint: "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					IntrospectionEndpoint: "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.TokenRefreshFlowConfig{
 				RefreshToken: "refresh-token",
@@ -73,13 +77,17 @@ func TestParseTokenRefreshFlagsResult(t *testing.T) {
 				"--refresh-token", "refresh-token",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				IntrospectionEndpoint: "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
-				DPoPPrivateKeyFile:    "path/to/private-key.pem",
-				DPoPPublicKeyFile:     "path/to/public-key.pem",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					IntrospectionEndpoint: "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
+				DPoPKeys: oidc.DPoPKeys{
+					PrivateKeyFile: "path/to/private-key.pem",
+					PublicKeyFile:  "path/to/public-key.pem",
+				},
 			},
 			oidc.TokenRefreshFlowConfig{
 				RefreshToken: "refresh-token",

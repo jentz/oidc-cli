@@ -17,16 +17,16 @@ type ClientCredentialsFlowConfig struct {
 }
 
 func (c *ClientCredentialsFlow) Run(ctx context.Context) error {
-	client := c.Config.Client
+	client := c.Config.Runtime.Client
 
 	req := httpclient.CreateClientCredentialsRequest(
-		c.Config.ClientID,
-		c.Config.ClientSecret,
-		c.Config.AuthMethod,
+		c.Config.OIDC.ClientID,
+		c.Config.OIDC.ClientSecret,
+		c.Config.OIDC.AuthMethod,
 		c.FlowConfig.Scope,
 	)
 
-	resp, err := client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, req)
+	resp, err := client.ExecuteTokenRequest(ctx, c.Config.OIDC.TokenEndpoint, req)
 	if err != nil {
 		return fmt.Errorf("token request failed: %w", err)
 	}
@@ -36,5 +36,5 @@ func (c *ClientCredentialsFlow) Run(ctx context.Context) error {
 		return httpclient.WrapError(err, "token")
 	}
 
-	return c.Config.Logger.OutputJSON(tokenData)
+	return c.Config.Runtime.Logger.OutputJSON(tokenData)
 }

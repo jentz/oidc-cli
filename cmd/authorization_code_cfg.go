@@ -26,16 +26,18 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 
-	flags.StringVar(&oidcConf.IssuerURL, "issuer", oidcConf.IssuerURL, "set issuer url (required)")
-	flags.StringVar(&oidcConf.DiscoveryEndpoint, "discovery-url", oidcConf.DiscoveryEndpoint, "override discovery url")
-	flags.StringVar(&oidcConf.AuthorizationEndpoint, "authorization-url", "", "override authorization url")
-	flags.StringVar(&oidcConf.TokenEndpoint, "token-url", "", "override token url")
-	flags.StringVar(&oidcConf.ClientID, "client-id", oidcConf.ClientID, "set client ID (required)")
-	flags.StringVar(&oidcConf.ClientSecret, "client-secret", oidcConf.ClientSecret, "set client secret (required if not using PKCE)")
-	flags.BoolVar(&oidcConf.SkipTLSVerify, "skip-tls-verify", oidcConf.SkipTLSVerify, "skip TLS certificate verification")
-	flags.Var(&oidcConf.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
-	flags.StringVar(&oidcConf.DPoPPrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
-	flags.StringVar(&oidcConf.DPoPPublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
+	flags.StringVar(&oidcConf.OIDC.IssuerURL, "issuer", oidcConf.OIDC.IssuerURL, "set issuer url (required)")
+	flags.StringVar(&oidcConf.OIDC.DiscoveryEndpoint, "discovery-url", oidcConf.OIDC.DiscoveryEndpoint, "override discovery url")
+	flags.StringVar(&oidcConf.OIDC.AuthorizationEndpoint, "authorization-url", "", "override authorization url")
+	flags.StringVar(&oidcConf.OIDC.TokenEndpoint, "token-url", "", "override token url")
+	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
+	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required if not using PKCE)")
+	// Effective only as a global flag (the client is built before subcommands parse); accepted here but ignored.
+	var skipTLSVerify bool
+	flags.BoolVar(&skipTLSVerify, "skip-tls-verify", false, "skip TLS certificate verification")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.StringVar(&oidcConf.DPoPKeys.PrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
+	flags.StringVar(&oidcConf.DPoPKeys.PublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
 
 	var flowConf oidc.AuthorizationCodeFlowConfig
 	flags.StringVar(&flowConf.Scope, "scope", "openid", "set scope as a space separated list")
@@ -81,15 +83,15 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 		message   string
 	}{
 		{
-			oidcConf.IssuerURL == "",
+			oidcConf.OIDC.IssuerURL == "",
 			"issuer is required",
 		},
 		{
-			oidcConf.ClientID == "",
+			oidcConf.OIDC.ClientID == "",
 			"client-id is required",
 		},
 		{
-			oidcConf.ClientSecret == "" && !flowConf.PKCE,
+			oidcConf.OIDC.ClientSecret == "" && !flowConf.PKCE,
 			"client-secret is required unless using PKCE",
 		},
 		{
@@ -101,7 +103,7 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 			"callback-uri is required",
 		},
 		{
-			flowConf.DPoP && (oidcConf.DPoPPrivateKeyFile == "" || oidcConf.DPoPPublicKeyFile == ""),
+			flowConf.DPoP && (oidcConf.DPoPKeys.PrivateKeyFile == "" || oidcConf.DPoPKeys.PublicKeyFile == ""),
 			"both dpop-private-key and dpop-public-key are required when using DPoP",
 		},
 	}

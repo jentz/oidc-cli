@@ -38,13 +38,17 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 				"--dpop-public-key", "path/to/public-key.pem",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
-				IntrospectionEndpoint: "https://example.com/introspection",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
-				DPoPPrivateKeyFile:    "path/to/private-key.pem",
-				DPoPPublicKeyFile:     "path/to/public-key.pem",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "https://example.com/.well-known/openid-configuration",
+					IntrospectionEndpoint: "https://example.com/introspection",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
+				DPoPKeys: oidc.DPoPKeys{
+					PrivateKeyFile: "path/to/private-key.pem",
+					PublicKeyFile:  "path/to/public-key.pem",
+				},
 			},
 			oidc.TokenExchangeFlowConfig{
 				Resource:           "resource",
@@ -66,8 +70,10 @@ func TestParseTokenExchangeFlagsResult(t *testing.T) {
 				"--subject-token", "subject-token",
 			},
 			oidc.Config{
-				IssuerURL: "https://example.com",
-				ClientID:  "client-id",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL: "https://example.com",
+					ClientID:  "client-id",
+				},
 			},
 			oidc.TokenExchangeFlowConfig{
 				SubjectToken:     "subject-token",

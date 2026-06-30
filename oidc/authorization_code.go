@@ -31,7 +31,7 @@ type AuthorizationCodeFlowConfig struct {
 
 func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeVerifier string) (*httpclient.AuthorizationCodeRequest, error) {
 	req := &httpclient.AuthorizationCodeRequest{
-		ClientID:    c.Config.ClientID,
+		ClientID:    c.Config.OIDC.ClientID,
 		Scope:       c.FlowConfig.Scope,
 		RedirectURI: c.FlowConfig.RedirectURI,
 		Prompt:      c.FlowConfig.Prompt,
@@ -56,12 +56,12 @@ func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeV
 			return nil, fmt.Errorf("failed to create authorization code request values: %w", err)
 		}
 		parReq := &httpclient.PushedAuthorizationRequest{
-			ClientID:     c.Config.ClientID,
-			ClientSecret: c.Config.ClientSecret,
-			AuthMethod:   c.Config.AuthMethod,
+			ClientID:     c.Config.OIDC.ClientID,
+			ClientSecret: c.Config.OIDC.ClientSecret,
+			AuthMethod:   c.Config.OIDC.AuthMethod,
 			Params:       parParams,
 		}
-		resp, err := c.Config.Client.ExecutePushedAuthorizationRequest(ctx, c.Config.PushedAuthorizationRequestEndpoint, parReq)
+		resp, err := c.Config.Runtime.Client.ExecutePushedAuthorizationRequest(ctx, c.Config.OIDC.PushedAuthorizationRequestEndpoint, parReq)
 		if err != nil {
 			return nil, fmt.Errorf("pushed authorization request failed: %w", err)
 		}
@@ -75,7 +75,7 @@ func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeV
 }
 
 func (c *AuthorizationCodeFlow) executeAuthCodeRequest(ctx context.Context, req *httpclient.AuthorizationCodeRequest) (*httpclient.AuthorizationCodeResponse, error) {
-	resp, err := c.Config.Client.ExecuteAuthorizationCodeRequest(ctx, c.Config.AuthorizationEndpoint, c.FlowConfig.CallbackURI, req)
+	resp, err := c.Config.Runtime.Client.ExecuteAuthorizationCodeRequest(ctx, c.Config.OIDC.AuthorizationEndpoint, c.FlowConfig.CallbackURI, req)
 	if err != nil {
 		return nil, fmt.Errorf("authorization request failed: %w", err)
 	}
@@ -84,15 +84,15 @@ func (c *AuthorizationCodeFlow) executeAuthCodeRequest(ctx context.Context, req 
 
 func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, codeVerifier string, dpop httpclient.DPoPProofFunc) (map[string]interface{}, error) {
 	tokenRequest := httpclient.CreateAuthCodeTokenRequest(
-		c.Config.ClientID,
-		c.Config.ClientSecret,
-		c.Config.AuthMethod,
+		c.Config.OIDC.ClientID,
+		c.Config.OIDC.ClientSecret,
+		c.Config.OIDC.AuthMethod,
 		code,
 		c.FlowConfig.CallbackURI,
 		codeVerifier,
 	)
 	tokenRequest.DPoP = dpop
-	resp, err := c.Config.Client.ExecuteTokenRequest(ctx, c.Config.TokenEndpoint, tokenRequest)
+	resp, err := c.Config.Runtime.Client.ExecuteTokenRequest(ctx, c.Config.OIDC.TokenEndpoint, tokenRequest)
 	if err != nil {
 		return nil, fmt.Errorf("token request failed: %w", err)
 	}
@@ -105,7 +105,7 @@ func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, c
 
 func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 	// Handle PKCE
-	codeVerifier, err := c.Config.setupPKCE(c.FlowConfig.PKCE)
+	codeVerifier, err := c.Config.OIDC.setupPKCE(c.FlowConfig.PKCE)
 	if err != nil {
 		return err
 	}
@@ -130,5 +130,5 @@ func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 		return err
 	}
 
-	return c.Config.Logger.OutputJSON(tokenData)
+	return c.Config.Runtime.Logger.OutputJSON(tokenData)
 }

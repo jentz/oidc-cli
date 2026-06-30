@@ -20,14 +20,14 @@ type DeviceFlowConfig struct {
 }
 
 func (c *DeviceFlow) Run(ctx context.Context) error {
-	client := c.Config.Client
-	codeVerifier, err := c.Config.setupPKCE(c.FlowConfig.PKCE)
+	client := c.Config.Runtime.Client
+	codeVerifier, err := c.Config.OIDC.setupPKCE(c.FlowConfig.PKCE)
 	if err != nil {
 		return err
 	}
 
 	req := &httpclient.DeviceAuthorizationRequest{
-		ClientID: c.Config.ClientID,
+		ClientID: c.Config.OIDC.ClientID,
 		Scope:    c.FlowConfig.Scope,
 	}
 
@@ -36,7 +36,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		req.CodeChallenge = crypto.GeneratePKCECodeChallenge(codeVerifier)
 	}
 
-	resp, err := client.ExecuteDeviceAuthorizationRequest(ctx, c.Config.DeviceAuthorizationEndpoint, req)
+	resp, err := client.ExecuteDeviceAuthorizationRequest(ctx, c.Config.OIDC.DeviceAuthorizationEndpoint, req)
 	if err != nil {
 		return fmt.Errorf("device authorization request failed: %w", err)
 	}
@@ -46,7 +46,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		return httpclient.WrapError(err, "device authorization")
 	}
 
-	logger := c.Config.Logger
+	logger := c.Config.Runtime.Logger
 	if deviceAuthResp.VerificationURIComplete != "" {
 		verificationURI := deviceAuthResp.VerificationURIComplete
 		logger.Printf("device verification uri: %s\n", verificationURI)
@@ -63,9 +63,9 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 
 	// Poll for token
 	tokenReq := httpclient.CreateDeviceCodeTokenRequest(
-		c.Config.ClientID,
-		c.Config.ClientSecret,
-		c.Config.AuthMethod,
+		c.Config.OIDC.ClientID,
+		c.Config.OIDC.ClientSecret,
+		c.Config.OIDC.AuthMethod,
 		deviceAuthResp.DeviceCode,
 		codeVerifier,
 	)
@@ -74,7 +74,7 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 		tokenReq.DPoP = c.Config.DPoPKeys.ProofFunc()
 	}
 
-	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
+	tokenResp, err := client.ExecutePollingTokenRequest(ctx, c.Config.OIDC.TokenEndpoint, tokenReq, deviceAuthResp.Interval)
 	if err != nil {
 		return fmt.Errorf("polling token request failed: %w", err)
 	}

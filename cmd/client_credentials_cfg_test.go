@@ -26,11 +26,13 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 				"--client-secret", "client-secret",
 			},
 			oidc.Config{
-				IssuerURL:         "https://example.com",
-				DiscoveryEndpoint: "https://example.com/.well-known/openid-configuration",
-				TokenEndpoint:     "https://example.com/token",
-				ClientID:          "client-id",
-				ClientSecret:      "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:         "https://example.com",
+					DiscoveryEndpoint: "https://example.com/.well-known/openid-configuration",
+					TokenEndpoint:     "https://example.com/token",
+					ClientID:          "client-id",
+					ClientSecret:      "client-secret",
+				},
 			},
 			oidc.ClientCredentialsFlowConfig{
 				Scope: "",
@@ -44,12 +46,14 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 				"--client-secret", "client-secret",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					AuthorizationEndpoint: "",
+					TokenEndpoint:         "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.ClientCredentialsFlowConfig{
 				Scope: "",
@@ -64,12 +68,14 @@ func TestParseClientCredentialsFlagsResult(t *testing.T) {
 				"--scope", "expected",
 			},
 			oidc.Config{
-				IssuerURL:             "https://example.com",
-				DiscoveryEndpoint:     "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				ClientID:              "client-id",
-				ClientSecret:          "client-secret",
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:             "https://example.com",
+					DiscoveryEndpoint:     "",
+					AuthorizationEndpoint: "",
+					TokenEndpoint:         "",
+					ClientID:              "client-id",
+					ClientSecret:          "client-secret",
+				},
 			},
 			oidc.ClientCredentialsFlowConfig{
 				Scope: "expected",
