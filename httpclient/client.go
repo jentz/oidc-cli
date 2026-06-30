@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/jentz/oidc-cli/log"
+	"github.com/jentz/oidc-cli/webflow"
 )
 
 // Config holds HTTP client configuration.
@@ -21,6 +23,10 @@ type Config struct {
 	Timeout       time.Duration     // Timeout for HTTP requests
 	Transport     http.RoundTripper // Custom HTTP transport, if any
 	Logger        *log.Logger       // Logger for client output; if nil, output is discarded
+	// Browser opens authorization URLs; nil falls back to webflow.NewBrowser().
+	Browser webflow.Browser
+	// Listen creates the callback server's listener; nil falls back to net.Listen.
+	Listen func(network, addr string) (net.Listener, error)
 }
 
 // SleepFunc is a function that sleeps for a duration, respecting context cancellation.
@@ -29,8 +35,9 @@ type SleepFunc func(ctx context.Context, d time.Duration) error
 // Client is a wrapper around http.Client with utility methods
 type Client struct {
 	client    *http.Client
-	authDeps  *AuthFlowDependencies // Optional dependencies for authorization flows
-	sleepFunc SleepFunc             // Optional; if nil, sleep() falls back to sleepWithContext
+	browser   webflow.Browser
+	listen    func(network, addr string) (net.Listener, error)
+	sleepFunc SleepFunc // nil falls back to sleepWithContext
 	logger    *log.Logger
 }
 
@@ -74,22 +81,30 @@ func NewClient(cfg *Config) *Client {
 		logger = log.Discard()
 	}
 
+	browser := cfg.Browser
+	if browser == nil {
+		browser = webflow.NewBrowser()
+	}
+
+	listen := cfg.Listen
+	if listen == nil {
+		listen = net.Listen
+	}
+
 	return &Client{
 		client: &http.Client{
 			Transport: transport,
 			Timeout:   cfg.Timeout,
 		},
-		authDeps: NewAuthFlowDependencies(logger),
-		logger:   logger,
+		browser: browser,
+		listen:  listen,
+		logger:  logger,
 	}
 }
 
-// SetAuthFlowDependencies sets custom dependencies for authorization flows.
-// This is primarily used for testing with mock implementations.
-func (c *Client) SetAuthFlowDependencies(deps *AuthFlowDependencies) {
-	if deps != nil {
-		c.authDeps = deps
-	}
+// OpenURL opens url in the client's browser.
+func (c *Client) OpenURL(url string) error {
+	return c.browser.Open(url)
 }
 
 // SetSleepFunc sets a custom sleep function, primarily for testing.

@@ -7,24 +7,27 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"testing"
 
 	"github.com/jentz/oidc-cli/httpclient"
 	"github.com/jentz/oidc-cli/log"
+	"github.com/jentz/oidc-cli/webflow"
 )
 
-// The four non-interactive flows are exercised through their Run entry point
-// against this harness. Tests assert only on what crosses the Run seam — the
-// HTTP request emitted (method, URL, headers, form body) and the bytes written
-// to output — never on config internals or unexported helpers. A later split
-// of the Config struct touches only newReadyConfig (a compile error if missed),
-// not the per-flow assertions, which keep passing on the same wire and output.
+// Flows are exercised through their Run entry point against this harness.
+// Tests assert only on what crosses the Run seam — the HTTP requests emitted
+// (method, URL, headers, form body) and the bytes written to output — never on
+// config internals or unexported helpers, so they survive config refactors.
 
 const (
 	testClientID              = "test-client"
 	testClientSecret          = "test-secret"
+	testAuthorizationEndpoint = "https://op.example.com/authorize"
+	testPAREndpoint           = "https://op.example.com/par"
+	testDeviceAuthEndpoint    = "https://op.example.com/device_authorization"
 	testTokenEndpoint         = "https://op.example.com/token"
 	testIntrospectionEndpoint = "https://op.example.com/introspect"
 )
@@ -41,8 +44,9 @@ type capturedRequest struct {
 
 // flowFixture bundles a ready Config with the request capture and output buffer
 // that let a flow test assert on the Run seam alone. The requests slice needs
-// no lock because each non-interactive flow drives one synchronous request;
-// capturing concurrent requests would require synchronizing this append.
+// no lock because a flow drives its endpoint requests sequentially on the
+// calling goroutine; the interactive callback round-trip rides a real loopback
+// listener that never touches this transport, so no append races it.
 type flowFixture struct {
 	config   *Config
 	requests []*capturedRequest
@@ -53,6 +57,12 @@ type flowFixture struct {
 	dpopPublicKey any
 }
 
+// cannedResponse is the status and body the transport replies with for a route.
+type cannedResponse struct {
+	status int
+	body   string
+}
+
 type fixtureSettings struct {
 	clientID       string
 	clientSecret   string
@@ -60,13 +70,52 @@ type fixtureSettings struct {
 	dpopKeys       bool
 	responseStatus int
 	responseBody   string
+	// routes overrides the default response per request URL, letting an
+	// interactive flow return a request_uri from the PAR endpoint and a token
+	// from the token endpoint within one Run.
+	routes  map[string]cannedResponse
+	browser webflow.Browser
+	listen  func(network, addr string) (net.Listener, error)
 }
 
 type fixtureOption func(*fixtureSettings)
 
+// withRoute sets the canned response the transport returns for a specific
+// request URL, overriding the default for that endpoint only.
+func withRoute(url string, status int, body string) fixtureOption {
+	return func(s *fixtureSettings) {
+		if s.routes == nil {
+			s.routes = make(map[string]cannedResponse)
+		}
+		s.routes[url] = cannedResponse{status: status, body: body}
+	}
+}
+
+// withBrowser injects the browser the client opens authorization URLs through,
+// letting an interactive-flow test fire the callback or no-op the launch.
+func withBrowser(b webflow.Browser) fixtureOption {
+	return func(s *fixtureSettings) { s.browser = b }
+}
+
+// withListener injects the function the callback server binds its listener
+// with, letting a test drive the redirect over a pre-bound loopback port.
+func withListener(fn func(network, addr string) (net.Listener, error)) fixtureOption {
+	return func(s *fixtureSettings) { s.listen = fn }
+}
+
 // withAuthMethod overrides the client authentication method (default Basic).
 func withAuthMethod(m httpclient.AuthMethod) fixtureOption {
 	return func(s *fixtureSettings) { s.authMethod = m }
+}
+
+// withPublicClient models a public client: no secret, with the auth method
+// left at Basic so a flow's PKCE setup is what flips it to None. It exercises
+// the no-secret fallback that confidential-client cases never reach.
+func withPublicClient() fixtureOption {
+	return func(s *fixtureSettings) {
+		s.clientSecret = ""
+		s.authMethod = httpclient.AuthMethodBasic
+	}
 }
 
 // withDPoPKeys loads a freshly generated ECDSA P-256 keypair into the config,
@@ -106,29 +155,37 @@ func newReadyConfig(t *testing.T, opts ...fixtureOption) *flowFixture {
 
 	transport := mockTransport(func(req *http.Request) (*http.Response, error) {
 		fixture.requests = append(fixture.requests, captureRequest(t, req))
+		status, body := settings.responseStatus, settings.responseBody
+		if route, ok := settings.routes[req.URL.String()]; ok {
+			status, body = route.status, route.body
+		}
 		return &http.Response{
-			StatusCode: settings.responseStatus,
-			Body:       io.NopCloser(bytes.NewBufferString(settings.responseBody)),
+			StatusCode: status,
+			Body:       io.NopCloser(bytes.NewBufferString(body)),
 			Header:     make(http.Header),
 		}, nil
 	})
 
 	logger := log.New(log.WithOutput(fixture.output, io.Discard))
 	// The client keeps its own (discard) logger so the output buffer captures
-	// the flow's output alone; the exact-output assertions stay scoped to the
-	// Run seam rather than coupling to any future client-side logging.
+	// the flow's output alone, independent of any client-side logging.
 	client := httpclient.NewClient(&httpclient.Config{
 		Transport: transport,
+		Browser:   settings.browser,
+		Listen:    settings.listen,
 	})
 
 	fixture.config = &Config{
-		ClientID:              settings.clientID,
-		ClientSecret:          settings.clientSecret,
-		AuthMethod:            settings.authMethod,
-		TokenEndpoint:         testTokenEndpoint,
-		IntrospectionEndpoint: testIntrospectionEndpoint,
-		Client:                client,
-		Logger:                logger,
+		ClientID:                           settings.clientID,
+		ClientSecret:                       settings.clientSecret,
+		AuthMethod:                         settings.authMethod,
+		AuthorizationEndpoint:              testAuthorizationEndpoint,
+		PushedAuthorizationRequestEndpoint: testPAREndpoint,
+		DeviceAuthorizationEndpoint:        testDeviceAuthEndpoint,
+		TokenEndpoint:                      testTokenEndpoint,
+		IntrospectionEndpoint:              testIntrospectionEndpoint,
+		Client:                             client,
+		Logger:                             logger,
 	}
 
 	if settings.dpopKeys {
