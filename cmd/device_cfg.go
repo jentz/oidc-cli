@@ -21,9 +21,6 @@ func parseDeviceFlags(in ParseInput) (runner CommandRunner, output string, err e
 	flags.StringVar(&oidcConf.OIDC.DeviceAuthorizationEndpoint, "device-authorization-url", "", "override device authorization url")
 	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
 	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required if not using PKCE)")
-	// Effective only as a global flag (the client is built before subcommands parse); accepted here but ignored.
-	var skipTLSVerify bool
-	flags.BoolVar(&skipTLSVerify, "skip-tls-verify", false, "skip TLS certificate verification")
 	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
 	flags.StringVar(&oidcConf.DPoPKeys.PrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
 	flags.StringVar(&oidcConf.DPoPKeys.PublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
