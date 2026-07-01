@@ -288,7 +288,10 @@ func TestConstructJWT(t *testing.T) {
 			if got.Claims == nil {
 				t.Errorf("token.Claims = %v, want %v", got.Claims, "not nil")
 			}
-			claims := got.Claims.(jwt.MapClaims)
+			claims, ok := got.Claims.(jwt.MapClaims)
+			if !ok {
+				t.Fatalf("token.Claims type = %T, want jwt.MapClaims", got.Claims)
+			}
 			if claims["jti"] != tt.dpopProofBuilder.jti {
 				t.Errorf("claims[\"jti\"] = %v, want %v", claims["jti"], tt.dpopProofBuilder.jti)
 			}

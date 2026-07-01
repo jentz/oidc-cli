@@ -129,9 +129,9 @@ func TestExecuteTokenRequest_DPoPFunctionCalledWithMethodAndURL(t *testing.T) {
 		ClientID:     "test-client",
 		ClientSecret: "test-secret",
 		AuthMethod:   AuthMethodPost,
-		DPoP: func(method, url string) (string, error) {
+		DPoP: func(method, requestURL string) (string, error) {
 			gotMethod = method
-			gotURL = url
+			gotURL = requestURL
 			return "proof-123", nil
 		},
 	}
@@ -200,7 +200,7 @@ func TestExecutePollingTokenRequest(t *testing.T) {
 	}{
 		{
 			name:         "immediate success",
-			intervals:    []int{},
+			intervals:    make([]int, 0),
 			wantAttempts: 1,
 		},
 		{
@@ -592,7 +592,7 @@ func TestCreateClientCredentialsRequest(t *testing.T) {
 			clientSecret: "secret012",
 			authMethod:   AuthMethodPost,
 			scope:        "",
-			wantParams:   map[string]string{},
+			wantParams:   make(map[string]string),
 		},
 	}
 
@@ -760,14 +760,14 @@ func TestParseTokenResponse(t *testing.T) {
 		body       string
 		wantErr    bool
 		wantErrMsg string
-		wantData   map[string]interface{}
+		wantData   map[string]any
 	}{
 		{
 			name:       "successful response",
 			statusCode: 200,
 			body:       `{"access_token":"token123","token_type":"Bearer","expires_in":3600}`,
 			wantErr:    false,
-			wantData: map[string]interface{}{
+			wantData: map[string]any{
 				"access_token": "token123",
 				"token_type":   "Bearer",
 				"expires_in":   float64(3600),

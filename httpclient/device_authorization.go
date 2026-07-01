@@ -48,7 +48,7 @@ func ParseDeviceAuthorizationResponse(resp *Response) (*DeviceAuthorizationRespo
 			StatusCode: resp.StatusCode,
 			RawBody:    resp.String(),
 		}
-		var mapResp map[string]interface{}
+		var mapResp map[string]any
 
 		if err := json.Unmarshal(resp.Body, &mapResp); err != nil {
 			return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)

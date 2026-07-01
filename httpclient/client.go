@@ -178,7 +178,7 @@ func (c *Client) PostForm(ctx context.Context, rawURL string, formValues url.Val
 }
 
 // PostJSON sends a JSON POST request
-func (c *Client) PostJSON(ctx context.Context, rawURL string, data interface{}, headers map[string]string) (*Response, error) {
+func (c *Client) PostJSON(ctx context.Context, rawURL string, data any, headers map[string]string) (*Response, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
@@ -193,7 +193,7 @@ func (c *Client) PostJSON(ctx context.Context, rawURL string, data interface{}, 
 }
 
 // JSON unmarshals the response body into the provided value
-func (r *Response) JSON(v interface{}) error {
+func (r *Response) JSON(v any) error {
 	return json.Unmarshal(r.Body, v)
 }
 

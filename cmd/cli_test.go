@@ -32,7 +32,7 @@ func TestCLI_HelpFlag(t *testing.T) { //nolint:paralleltest // mutates global fl
 func TestCLI_NoArgs(t *testing.T) { //nolint:paralleltest // mutates global flag.CommandLine
 	resetFlags()
 	var out bytes.Buffer
-	code := CLI([]string{}, log.WithOutput(&out, &out))
+	code := CLI(make([]string, 0), log.WithOutput(&out, &out))
 	if code != ExitError {
 		t.Errorf("expected ExitError, got %d", code)
 	}

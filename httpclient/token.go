@@ -25,7 +25,7 @@ func sleepWithContext(ctx context.Context, d time.Duration) error {
 
 // DPoPProofFunc generates a DPoP proof for the given HTTP method and URL.
 // It is called once per request, ensuring each token request carries a fresh proof.
-type DPoPProofFunc func(method, url string) (string, error)
+type DPoPProofFunc func(method, requestURL string) (string, error)
 
 // TokenRequest represents an OAuth2 token request
 type TokenRequest struct {
@@ -233,8 +233,8 @@ func CreateTokenExchangeRequest(clientID, clientSecret string, authMethod AuthMe
 }
 
 // ParseTokenResponse parses the standard OAuth2 token response
-func ParseTokenResponse(resp *Response) (map[string]interface{}, error) {
-	var tokenResp map[string]interface{}
+func ParseTokenResponse(resp *Response) (map[string]any, error) {
+	var tokenResp map[string]any
 
 	// Try to parse JSON regardless of status code
 	if err := resp.JSON(&tokenResp); err != nil {

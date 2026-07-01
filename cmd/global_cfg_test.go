@@ -36,7 +36,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 					ClientSecret:      "client-secret",
 				},
 			},
-			remainingArgs: []string{},
+			remainingArgs: make([]string, 0),
 		},
 		{
 			name: "only issuer",
@@ -52,7 +52,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 					ClientSecret: "client-secret",
 				},
 			},
-			remainingArgs: []string{},
+			remainingArgs: make([]string, 0),
 		},
 		{
 			name: "verbose flag",
@@ -69,7 +69,7 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 					ClientSecret: "client-secret",
 				},
 			},
-			remainingArgs: []string{},
+			remainingArgs: make([]string, 0),
 		},
 		{
 			name: "flags after non-flag argument",

@@ -82,7 +82,7 @@ func (c *AuthorizationCodeFlow) executeAuthCodeRequest(ctx context.Context, req 
 	return resp, nil
 }
 
-func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, codeVerifier string, dpop httpclient.DPoPProofFunc) (map[string]interface{}, error) {
+func (c *AuthorizationCodeFlow) executeTokenRequest(ctx context.Context, code, codeVerifier string, dpop httpclient.DPoPProofFunc) (map[string]any, error) {
 	tokenRequest := httpclient.CreateAuthCodeTokenRequest(
 		c.Config.OIDC.ClientID,
 		c.Config.OIDC.ClientSecret,

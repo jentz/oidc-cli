@@ -11,7 +11,7 @@ import (
 
 type CustomArgsFlag []string
 
-func (c *CustomArgsFlag) String() string {
+func (*CustomArgsFlag) String() string {
 	return ""
 }
 

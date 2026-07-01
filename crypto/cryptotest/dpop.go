@@ -66,7 +66,11 @@ func CheckDPoPProof(proof string, pub crypto.PublicKey, wantHTM, wantHTU string)
 		return fmt.Errorf("parsing proof: %w", err)
 	}
 
-	if typ, _ := token.Header["typ"].(string); typ != "dpop+jwt" {
+	typ, ok := token.Header["typ"].(string)
+	if !ok {
+		return fmt.Errorf("header typ = %v, want a \"dpop+jwt\" string", token.Header["typ"])
+	}
+	if typ != "dpop+jwt" {
 		return fmt.Errorf("header typ = %q, want \"dpop+jwt\"", typ)
 	}
 
@@ -78,13 +82,21 @@ func CheckDPoPProof(proof string, pub crypto.PublicKey, wantHTM, wantHTU string)
 	if !ok {
 		return fmt.Errorf("claims type = %T, want jwt.MapClaims", token.Claims)
 	}
-	if htm, _ := claims["htm"].(string); htm != wantHTM {
+	htm, ok := claims["htm"].(string)
+	if !ok {
+		return fmt.Errorf("htm claim = %v, want a %q string", claims["htm"], wantHTM)
+	}
+	if htm != wantHTM {
 		return fmt.Errorf("htm claim = %q, want %q", htm, wantHTM)
 	}
-	if htu, _ := claims["htu"].(string); htu != wantHTU {
+	htu, ok := claims["htu"].(string)
+	if !ok {
+		return fmt.Errorf("htu claim = %v, want a %q string", claims["htu"], wantHTU)
+	}
+	if htu != wantHTU {
 		return fmt.Errorf("htu claim = %q, want %q", htu, wantHTU)
 	}
-	if jti, _ := claims["jti"].(string); jti == "" {
+	if jti, ok := claims["jti"].(string); !ok || jti == "" {
 		return errors.New("jti claim is missing or empty")
 	}
 	return checkRecentIAT(claims)
@@ -111,7 +123,10 @@ func publicKeyFromJWK(raw any) (crypto.PublicKey, error) {
 	if !ok {
 		return nil, fmt.Errorf("jwk header is missing or not an object (got %T)", raw)
 	}
-	kty, _ := jwk["kty"].(string)
+	kty, ok := jwk["kty"].(string)
+	if !ok {
+		return nil, fmt.Errorf("jwk kty is missing or not a string (got %T)", jwk["kty"])
+	}
 	switch kty {
 	case "EC":
 		return ecdsaKeyFromJWK(jwk)
@@ -125,7 +140,10 @@ func publicKeyFromJWK(raw any) (crypto.PublicKey, error) {
 }
 
 func ecdsaKeyFromJWK(jwk map[string]any) (crypto.PublicKey, error) {
-	crv, _ := jwk["crv"].(string)
+	crv, ok := jwk["crv"].(string)
+	if !ok {
+		return nil, fmt.Errorf("jwk crv is missing or not a string (got %T)", jwk["crv"])
+	}
 	var curve elliptic.Curve
 	switch crv {
 	case "P-256":

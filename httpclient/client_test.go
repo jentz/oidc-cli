@@ -215,12 +215,12 @@ func TestPostJSON(t *testing.T) {
 			t.Errorf("Expected JSON content type, got %s", contentType)
 		}
 
-		var data map[string]interface{}
+		var data map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&data)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		response := map[string]interface{}{
+		response := map[string]any{
 			"received": data["message"],
 			"status":   "ok",
 		}
@@ -229,7 +229,7 @@ func TestPostJSON(t *testing.T) {
 	defer ts.Close()
 
 	client := NewClient(nil)
-	requestData := map[string]interface{}{
+	requestData := map[string]any{
 		"message": "hello world",
 		"count":   42,
 	}
@@ -246,13 +246,16 @@ func TestPostJSON(t *testing.T) {
 		t.Errorf("got status code %d, want %d", got, want)
 	}
 
-	var responseData map[string]interface{}
+	var responseData map[string]any
 	err = resp.JSON(&responseData)
 	if err != nil {
 		t.Fatalf("Failed to parse JSON response: %v", err)
 	}
 
-	gotMessage := responseData["received"].(string)
+	gotMessage, ok := responseData["received"].(string)
+	if !ok {
+		t.Fatalf("responseData[\"received\"] type = %T, want string", responseData["received"])
+	}
 	wantMessage := "hello world"
 	if gotMessage != wantMessage {
 		t.Errorf("got message %q, want %q", gotMessage, wantMessage)
@@ -277,7 +280,7 @@ func TestResponseMethods(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		response := map[string]interface{}{
+		response := map[string]any{
 			"message": "test response",
 			"code":    200,
 		}
@@ -298,19 +301,26 @@ func TestResponseMethods(t *testing.T) {
 	}
 
 	// Test JSON method
-	var data map[string]interface{}
+	var data map[string]any
 	err = resp.JSON(&data)
 	if err != nil {
 		t.Fatalf("JSON() method failed: %v", err)
 	}
 
-	gotMessage := data["message"].(string)
+	gotMessage, ok := data["message"].(string)
+	if !ok {
+		t.Fatalf("data[\"message\"] type = %T, want string", data["message"])
+	}
 	wantMessage := "test response"
 	if gotMessage != wantMessage {
 		t.Errorf("got message %q, want %q", gotMessage, wantMessage)
 	}
 
-	gotCode := int(data["code"].(float64))
+	gotCodeFloat, ok := data["code"].(float64)
+	if !ok {
+		t.Fatalf("data[\"code\"] type = %T, want float64", data["code"])
+	}
+	gotCode := int(gotCodeFloat)
 	wantCode := 200
 	if gotCode != wantCode {
 		t.Errorf("got code %d, want %d", gotCode, wantCode)
@@ -331,7 +341,7 @@ func TestResponseJSON_InvalidJSON(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	err = resp.JSON(&data)
 	if err == nil {
 		t.Error("Expected JSON unmarshal error, got nil")
@@ -433,7 +443,7 @@ func TestDo_ResponseBodyCloseError(t *testing.T) {
 // failingBodyCloseTransport is a custom transport that returns responses with bodies that fail to close
 type failingBodyCloseTransport struct{}
 
-func (t *failingBodyCloseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (*failingBodyCloseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Create a response with a failing body closer
 	resp := &http.Response{
 		StatusCode: http.StatusOK,
@@ -459,6 +469,6 @@ func (f *failingCloseReadCloser) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (f *failingCloseReadCloser) Close() error {
+func (*failingCloseReadCloser) Close() error {
 	return errors.New("simulated close error")
 }
