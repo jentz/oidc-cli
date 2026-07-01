@@ -6,6 +6,7 @@ linters:
     - copyloopvar
     - depguard
     - forbidigo
+    - gosec
     - misspell
     #- noctx
     - nolintlint
@@ -28,6 +29,9 @@ linters:
               desc: "use Go 1.13+ errors instead of pkg/errors"
             - pkg: math/rand$
               desc: "use math/rand/v2 instead"
+    gosec:
+      excludes:
+        - G104  # unhandled errors are already reported by errcheck
     revive:
       enable-all-rules: false
       rules:
@@ -54,3 +58,11 @@ linters:
         - name: unused-parameter
         - name: var-declaration
         - name: var-naming
+
+  exclusions:
+    rules:
+      # Security scanning targets production code; test fixtures routinely
+      # contain credential-like literals and helper subprocess/file calls.
+      - path: _test\.go$
+        linters:
+          - gosec
