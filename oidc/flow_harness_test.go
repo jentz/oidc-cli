@@ -82,12 +82,12 @@ type fixtureOption func(*fixtureSettings)
 
 // withRoute sets the canned response the transport returns for a specific
 // request URL, overriding the default for that endpoint only.
-func withRoute(url string, status int, body string) fixtureOption {
+func withRoute(rawURL string, status int, body string) fixtureOption {
 	return func(s *fixtureSettings) {
 		if s.routes == nil {
 			s.routes = make(map[string]cannedResponse)
 		}
-		s.routes[url] = cannedResponse{status: status, body: body}
+		s.routes[rawURL] = cannedResponse{status: status, body: body}
 	}
 }
 

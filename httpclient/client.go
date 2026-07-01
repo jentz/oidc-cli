@@ -103,8 +103,8 @@ func NewClient(cfg *Config) *Client {
 }
 
 // OpenURL opens url in the client's browser.
-func (c *Client) OpenURL(url string) error {
-	return c.browser.Open(url)
+func (c *Client) OpenURL(rawURL string) error {
+	return c.browser.Open(rawURL)
 }
 
 // SetSleepFunc sets a custom sleep function, primarily for testing.
@@ -122,8 +122,8 @@ func (c *Client) sleep(ctx context.Context, d time.Duration) error {
 }
 
 // Do performs an HTTP request and handles response processing
-func (c *Client) Do(ctx context.Context, method, url string, body io.Reader, headers map[string]string) (resp *Response, err error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
+func (c *Client) Do(ctx context.Context, method, rawURL string, body io.Reader, headers map[string]string) (resp *Response, err error) {
+	req, err := http.NewRequestWithContext(ctx, method, rawURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -158,27 +158,27 @@ func (c *Client) Do(ctx context.Context, method, url string, body io.Reader, hea
 }
 
 // Get performs an HTTP GET request
-func (c *Client) Get(ctx context.Context, url string, headers map[string]string) (*Response, error) {
-	return c.Do(ctx, http.MethodGet, url, nil, headers)
+func (c *Client) Get(ctx context.Context, rawURL string, headers map[string]string) (*Response, error) {
+	return c.Do(ctx, http.MethodGet, rawURL, nil, headers)
 }
 
 // Post performs an HTTP POST request
-func (c *Client) Post(ctx context.Context, url string, body io.Reader, headers map[string]string) (*Response, error) {
-	return c.Do(ctx, http.MethodPost, url, body, headers)
+func (c *Client) Post(ctx context.Context, rawURL string, body io.Reader, headers map[string]string) (*Response, error) {
+	return c.Do(ctx, http.MethodPost, rawURL, body, headers)
 }
 
 // PostForm sends a form-encoded POST request
-func (c *Client) PostForm(ctx context.Context, url string, formValues url.Values, headers map[string]string) (*Response, error) {
+func (c *Client) PostForm(ctx context.Context, rawURL string, formValues url.Values, headers map[string]string) (*Response, error) {
 	if headers == nil {
 		headers = make(map[string]string)
 	}
 	headers["Content-Type"] = "application/x-www-form-urlencoded"
 
-	return c.Post(ctx, url, strings.NewReader(formValues.Encode()), headers)
+	return c.Post(ctx, rawURL, strings.NewReader(formValues.Encode()), headers)
 }
 
 // PostJSON sends a JSON POST request
-func (c *Client) PostJSON(ctx context.Context, url string, data interface{}, headers map[string]string) (*Response, error) {
+func (c *Client) PostJSON(ctx context.Context, rawURL string, data interface{}, headers map[string]string) (*Response, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
@@ -189,7 +189,7 @@ func (c *Client) PostJSON(ctx context.Context, url string, data interface{}, hea
 	}
 	headers["Content-Type"] = "application/json"
 
-	return c.Post(ctx, url, bytes.NewReader(jsonData), headers)
+	return c.Post(ctx, rawURL, bytes.NewReader(jsonData), headers)
 }
 
 // JSON unmarshals the response body into the provided value

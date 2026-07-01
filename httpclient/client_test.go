@@ -436,7 +436,7 @@ type failingBodyCloseTransport struct{}
 func (t *failingBodyCloseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Create a response with a failing body closer
 	resp := &http.Response{
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 		Header:     make(http.Header),
 		Body:       &failingCloseReadCloser{data: []byte("test response")},
 		Request:    req,

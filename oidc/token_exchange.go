@@ -40,7 +40,7 @@ func (c *TokenExchangeFlow) createTokenRequest() *httpclient.TokenRequest {
 		c.Config.OIDC.ClientID,
 		c.Config.OIDC.ClientSecret,
 		c.Config.OIDC.AuthMethod,
-		input)
+		&input)
 
 	return req
 }

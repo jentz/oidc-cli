@@ -51,12 +51,12 @@ type DPoPProofBuilder struct {
 	errs          []error
 }
 
-func NewDPoPProof(publicKey any, privateKey any, method string, url string) (*DPoPProof, error) {
+func NewDPoPProof(publicKey, privateKey any, method, rawURL string) (*DPoPProof, error) {
 	d := NewDPoPProofBuilder().
 		PublicKey(publicKey).
 		PrivateKey(privateKey).
 		Method(method).
-		URL(url)
+		URL(rawURL)
 	return d.Build()
 }
 

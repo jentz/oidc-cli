@@ -157,7 +157,7 @@ func TestCallbackServerStartWithInjectedListener(t *testing.T) {
 	callbackURL := fmt.Sprintf("http://%s/callback?code=abc123&state=xyz", ln.Addr().String())
 	reqCtx, reqCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer reqCancel()
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, callbackURL, nil)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, callbackURL, http.NoBody)
 	if err != nil {
 		t.Fatalf("failed to build request: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestCallbackServerHandleCallback(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/callback?"+tt.query, nil)
+			r := httptest.NewRequest(http.MethodGet, "/callback?"+tt.query, http.NoBody)
 			s.handleCallback(w, r)
 
 			if w.Code != tt.wantStatus {
