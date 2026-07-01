@@ -7,13 +7,13 @@ import (
 )
 
 // Helper function to create a logger with captured output
-func setupTestLogger(verbose bool) (*Logger, *bytes.Buffer, *bytes.Buffer) {
-	var errBuf, outBuf bytes.Buffer
-	logger := New(
+func setupTestLogger(verbose bool) (logger *Logger, errBuf, outBuf *bytes.Buffer) {
+	errBuf, outBuf = &bytes.Buffer{}, &bytes.Buffer{}
+	logger = New(
 		WithVerbose(verbose),
-		WithOutput(&outBuf, &errBuf),
+		WithOutput(outBuf, errBuf),
 	)
-	return logger, &errBuf, &outBuf
+	return logger, errBuf, outBuf
 }
 
 func TestVerboseLogging(t *testing.T) {

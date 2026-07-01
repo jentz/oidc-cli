@@ -196,7 +196,7 @@ func CreateDeviceCodeTokenRequest(clientID, clientSecret string, authMethod Auth
 }
 
 // CreateTokenExchangeRequest creates a token request for the token exchange grant
-func CreateTokenExchangeRequest(clientID, clientSecret string, authMethod AuthMethod, input TokenExchangeInput) *TokenRequest {
+func CreateTokenExchangeRequest(clientID, clientSecret string, authMethod AuthMethod, input *TokenExchangeInput) *TokenRequest {
 	params := url.Values{}
 
 	// Required parameters

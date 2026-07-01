@@ -110,7 +110,7 @@ func CreateAuthorizationCodeRequestURL(endpoint string, values *url.Values) (str
 
 // ExecuteAuthorizationCodeRequest starts the callback server, opens the
 // authorization URL, waits for the redirect, and validates code and state.
-func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint string, callback string, req *AuthorizationCodeRequest) (*AuthorizationCodeResponse, error) {
+func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint, callback string, req *AuthorizationCodeRequest) (*AuthorizationCodeResponse, error) {
 	server, err := c.startCallbackServer(ctx, callback)
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ linters:
     - errorlint
     - forbidigo
     - gocognit
+    - gocritic
     - gocyclo
     - gosec
     - misspell
@@ -23,6 +24,7 @@ linters:
     - tparallel
     - unconvert
     - unparam
+    - usestdlibvars
     - usetesting
     - wastedassign
 
@@ -39,6 +41,11 @@ linters:
       min-complexity: 20
     gocyclo:
       min-complexity: 15
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
     gosec:
       excludes:
         - G104  # unhandled errors are already reported by errcheck
