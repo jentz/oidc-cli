@@ -29,9 +29,6 @@ go.work
 # goreleaser dist directory
 dist/
 
-# asdf
-.tool-versions
-
 # local tmp
 tmp/
 
