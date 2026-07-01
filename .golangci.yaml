@@ -4,11 +4,13 @@ linters:
   enable:
     - bodyclose
     - copyloopvar
+    - contextcheck
     - depguard
     - errorlint
     - forbidigo
     - gosec
     - misspell
+    - nilerr
     #- noctx
     - nolintlint
     - perfsprint

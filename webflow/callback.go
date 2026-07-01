@@ -119,8 +119,11 @@ func (s *CallbackServer) Start(ctx context.Context) error {
 	// Wait for context cancellation or server error
 	select {
 	case <-ctx.Done():
-		// Initiate graceful shutdown
-		return s.server.Shutdown(context.Background())
+		// The parent context is already cancelled here, so use a fresh,
+		// bounded context to let in-flight requests drain without hanging.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return s.server.Shutdown(shutdownCtx) //nolint:contextcheck // parent ctx is already cancelled; a fresh bounded context is deliberate
 	case err := <-errChan:
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
