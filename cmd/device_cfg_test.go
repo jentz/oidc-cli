@@ -23,7 +23,6 @@ func TestParseDeviceFlags(t *testing.T) {
 				"--discovery-url", "https://example.com/.well-known/openid-configuration",
 				"--authorization-url", "https://example.com/authorize",
 				"--token-url", "https://example.com/token",
-				"--skip-tls-verify",
 				"--client-id", "client-id",
 				"--client-secret", "client-secret",
 				"--scope", "openid profile email",
@@ -172,6 +171,32 @@ func TestParseDeviceFlags(t *testing.T) {
 				t.Errorf("OIDCConfig got %+v, want %+v", *f.FlowConfig, tt.flowConf)
 			}
 		})
+	}
+}
+
+// --skip-tls-verify is a global-only flag, so the device subcommand must reject
+// it. The other args are valid, so the sole parse error is the undefined flag.
+func TestParseDeviceFlagsRejectsSkipTLSVerify(t *testing.T) {
+	t.Parallel()
+	args := []string{
+		"--issuer", "https://example.com",
+		"--client-id", "client-id",
+		"--client-secret", "client-secret",
+		"--scope", "openid",
+		"--skip-tls-verify",
+	}
+	runner, output, err := parseDeviceFlags(ParseInput{Name: "device", Args: args, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
+	if err == nil {
+		t.Fatal("err got nil, want unknown-flag error for --skip-tls-verify")
+	}
+	if !strings.Contains(err.Error(), "skip-tls-verify") {
+		t.Errorf("err got %v, want it to name the undefined skip-tls-verify flag", err)
+	}
+	if runner != nil {
+		t.Errorf("runner got %T, want nil on parse failure", runner)
+	}
+	if output == "" {
+		t.Error("output got empty, want usage text on parse failure")
 	}
 }
 
