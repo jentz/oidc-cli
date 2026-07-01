@@ -9,6 +9,8 @@ import (
 )
 
 func ReadPEMBlockFromFile(filePath string) (*pem.Block, error) {
+	// #nosec G304 -- filePath is a DPoP key file the invoking user selects via
+	// a CLI flag; reading the user's own file crosses no privilege boundary.
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err

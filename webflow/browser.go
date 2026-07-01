@@ -54,6 +54,8 @@ func runCmd(prog string, args ...string) error {
 	if _, err := exec.LookPath(prog); err != nil {
 		return fmt.Errorf("command %s not found: %w", prog, err)
 	}
+	// #nosec G204 -- prog is a fixed per-platform literal, LookPath-validated,
+	// and the URL is a distinct argv element (no shell), so it cannot inject.
 	cmd := exec.Command(prog, args...)
 	return cmd.Run()
 }
