@@ -53,7 +53,7 @@ func ParsePushedAuthorizationResponse(resp *Response) (*PushedAuthorizationRespo
 		var mapResp map[string]interface{}
 
 		if err := json.Unmarshal(resp.Body, &mapResp); err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+			return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)
 		}
 
 		// Extract standard OAuth2 error fields if present
@@ -62,15 +62,15 @@ func ParsePushedAuthorizationResponse(resp *Response) (*PushedAuthorizationRespo
 			if desc, ok := mapResp["error_description"].(string); ok {
 				oauth2Err.ErrorDescription = desc
 			}
-			return nil, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+			return nil, fmt.Errorf("%w: %w", ErrOAuthError, oauth2Err)
 		}
 
-		return nil, fmt.Errorf("%w: %v", ErrHTTPFailure, oauth2Err)
+		return nil, fmt.Errorf("%w: %w", ErrHTTPFailure, oauth2Err)
 	}
 
 	var parResp PushedAuthorizationResponse
 	if err := json.Unmarshal(resp.Body, &parResp); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+		return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)
 	}
 	return &parResp, nil
 }

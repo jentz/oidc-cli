@@ -238,7 +238,7 @@ func ParseTokenResponse(resp *Response) (map[string]interface{}, error) {
 
 	// Try to parse JSON regardless of status code
 	if err := resp.JSON(&tokenResp); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+		return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)
 	}
 
 	// Check if there was an HTTP error
@@ -257,15 +257,15 @@ func ParseTokenResponse(resp *Response) (map[string]interface{}, error) {
 
 			switch errStr {
 			case "authorization_pending":
-				return tokenResp, fmt.Errorf("%w: %v", ErrAuthorizationPending, oauth2Err)
+				return tokenResp, fmt.Errorf("%w: %w", ErrAuthorizationPending, oauth2Err)
 			case "slow_down":
-				return tokenResp, fmt.Errorf("%w: %v", ErrSlowDown, oauth2Err)
+				return tokenResp, fmt.Errorf("%w: %w", ErrSlowDown, oauth2Err)
 			default:
-				return tokenResp, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+				return tokenResp, fmt.Errorf("%w: %w", ErrOAuthError, oauth2Err)
 			}
 		}
 
-		return tokenResp, fmt.Errorf("%w: %v", ErrHTTPFailure, oauth2Err)
+		return tokenResp, fmt.Errorf("%w: %w", ErrHTTPFailure, oauth2Err)
 	}
 
 	// Success case with valid JSON and 2xx status code

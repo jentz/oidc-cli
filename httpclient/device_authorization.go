@@ -51,7 +51,7 @@ func ParseDeviceAuthorizationResponse(resp *Response) (*DeviceAuthorizationRespo
 		var mapResp map[string]interface{}
 
 		if err := json.Unmarshal(resp.Body, &mapResp); err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+			return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)
 		}
 
 		// Extract standard OAuth2 error fields if present
@@ -60,15 +60,15 @@ func ParseDeviceAuthorizationResponse(resp *Response) (*DeviceAuthorizationRespo
 			if desc, ok := mapResp["error_description"].(string); ok {
 				oauth2Err.ErrorDescription = desc
 			}
-			return nil, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+			return nil, fmt.Errorf("%w: %w", ErrOAuthError, oauth2Err)
 		}
 
-		return nil, fmt.Errorf("%w: %v", ErrHTTPFailure, oauth2Err)
+		return nil, fmt.Errorf("%w: %w", ErrHTTPFailure, oauth2Err)
 	}
 
 	var deviceAuthResp DeviceAuthorizationResponse
 	if err := json.Unmarshal(resp.Body, &deviceAuthResp); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+		return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)
 	}
 	return &deviceAuthResp, nil
 }
