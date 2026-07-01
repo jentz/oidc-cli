@@ -5,6 +5,7 @@ linters:
     - bodyclose
     - copyloopvar
     - depguard
+    - errorlint
     - forbidigo
     - gosec
     - misspell

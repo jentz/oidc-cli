@@ -75,7 +75,7 @@ func ParseIntrospectionResponse(resp *Response) (map[string]interface{}, error) 
 
 	// Try to parse JSON regardless of status code
 	if err := resp.JSON(&mapResp); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrParsingJSON, err)
+		return nil, fmt.Errorf("%w: %w", ErrParsingJSON, err)
 	}
 
 	if !resp.IsSuccess() {
@@ -90,7 +90,7 @@ func ParseIntrospectionResponse(resp *Response) (map[string]interface{}, error) 
 			if desc, ok := mapResp["error_description"].(string); ok {
 				oauth2Err.ErrorDescription = desc
 			}
-			return mapResp, fmt.Errorf("%w: %v", ErrOAuthError, oauth2Err)
+			return mapResp, fmt.Errorf("%w: %w", ErrOAuthError, oauth2Err)
 		}
 
 		return nil, oauth2Err

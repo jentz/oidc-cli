@@ -400,7 +400,7 @@ func TestSleepWithContext(t *testing.T) {
 		err := sleepWithContext(ctx, 10*time.Second)
 		elapsed := time.Since(start)
 
-		if err != context.Canceled {
+		if !errors.Is(err, context.Canceled) {
 			t.Errorf("Expected context.Canceled, got: %v", err)
 		}
 
@@ -418,7 +418,7 @@ func TestSleepWithContext(t *testing.T) {
 		err := sleepWithContext(ctx, 10*time.Second)
 		elapsed := time.Since(start)
 
-		if err != context.Canceled {
+		if !errors.Is(err, context.Canceled) {
 			t.Errorf("Expected context.Canceled, got: %v", err)
 		}
 
