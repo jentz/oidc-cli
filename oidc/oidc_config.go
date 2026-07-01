@@ -108,7 +108,7 @@ func (o *OIDCConfig) DiscoverEndpoints(ctx context.Context, client *httpclient.C
 // verifier when not. A client with no secret cannot authenticate at the token
 // endpoint, so PKCE secures a public client and the auth method falls back to
 // none.
-func (o *OIDCConfig) setupPKCE(enabled bool) (string, error) {
+func (o *OIDCConfig) setupPKCE(enabled bool) (string, error) { //nolint:revive // flag-parameter: PKCE is an optional per-flow toggle, so a bool cleanly gates verifier generation.
 	if !enabled {
 		return "", nil
 	}

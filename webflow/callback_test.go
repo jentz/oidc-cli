@@ -46,7 +46,7 @@ func (m *mockListener) Close() error {
 	return nil
 }
 
-func (m *mockListener) Addr() net.Addr {
+func (*mockListener) Addr() net.Addr {
 	return &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 8080}
 }
 

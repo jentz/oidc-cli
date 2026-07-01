@@ -301,7 +301,7 @@ func TestParseIntrospectFlagsCustomArgs(t *testing.T) {
 	if f.FlowConfig.CustomArgs == nil {
 		t.Fatalf("CustomArgs is nil, want non-nil")
 	}
-	argsMap := map[string]string{}
+	argsMap := make(map[string]string)
 	for k, v := range *f.FlowConfig.CustomArgs {
 		argsMap[k] = v
 	}

@@ -74,36 +74,36 @@ func (l *Logger) SetVerbose(verbose bool) {
 }
 
 // Printf formats and writes a message to the error output (only in verbose mode).
-func (l *Logger) Printf(format string, a ...interface{}) {
+func (l *Logger) Printf(format string, a ...any) {
 	if l.verbose {
 		_, _ = fmt.Fprintf(l.errOut, format, a...)
 	}
 }
 
 // Println writes a message to the error output (only in verbose mode).
-func (l *Logger) Println(a ...interface{}) {
+func (l *Logger) Println(a ...any) {
 	if l.verbose {
 		_, _ = fmt.Fprintln(l.errOut, a...)
 	}
 }
 
 // Errorf writes a formatted error message to the error output (always).
-func (l *Logger) Errorf(format string, a ...interface{}) {
+func (l *Logger) Errorf(format string, a ...any) {
 	_, _ = fmt.Fprintf(l.errOut, format, a...)
 }
 
 // Errorln writes an error message to the error output (always).
-func (l *Logger) Errorln(a ...interface{}) {
+func (l *Logger) Errorln(a ...any) {
 	_, _ = fmt.Fprintln(l.errOut, a...)
 }
 
 // Outputf writes formatted output to stdout (always).
-func (l *Logger) Outputf(format string, args ...interface{}) {
+func (l *Logger) Outputf(format string, args ...any) {
 	_, _ = fmt.Fprintf(l.stdOut, format, args...)
 }
 
 // Outputln writes line output to stdout (always).
-func (l *Logger) Outputln(args ...interface{}) {
+func (l *Logger) Outputln(args ...any) {
 	_, _ = fmt.Fprintln(l.stdOut, args...)
 }
 
@@ -119,14 +119,14 @@ func (l *Logger) OutputJSON(v any) error {
 }
 
 // Verbosef writes formatted output to stdout (only in verbose mode)
-func (l *Logger) Verbosef(format string, args ...interface{}) {
+func (l *Logger) Verbosef(format string, args ...any) {
 	if l.verbose {
 		_, _ = fmt.Fprintf(l.stdOut, format, args...)
 	}
 }
 
 // Verboseln writes line output to stdout (only in verbose mode)
-func (l *Logger) Verboseln(args ...interface{}) {
+func (l *Logger) Verboseln(args ...any) {
 	if l.verbose {
 		_, _ = fmt.Fprintln(l.stdOut, args...)
 	}

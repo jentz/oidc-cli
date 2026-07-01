@@ -70,8 +70,8 @@ func (c *Client) ExecuteIntrospectionRequest(ctx context.Context, endpoint strin
 }
 
 // ParseIntrospectionResponse parses the introspection response into a map
-func ParseIntrospectionResponse(resp *Response) (map[string]interface{}, error) {
-	var mapResp map[string]interface{}
+func ParseIntrospectionResponse(resp *Response) (map[string]any, error) {
+	var mapResp map[string]any
 
 	// Try to parse JSON regardless of status code
 	if err := resp.JSON(&mapResp); err != nil {
