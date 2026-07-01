@@ -8,12 +8,15 @@ linters:
     - depguard
     - errorlint
     - forbidigo
+    - gocognit
+    - gocyclo
     - gosec
     - misspell
     - nilerr
     #- noctx
     - nolintlint
     - perfsprint
+    - prealloc
     - revive
     - thelper
     - paralleltest
@@ -32,6 +35,10 @@ linters:
               desc: "use Go 1.13+ errors instead of pkg/errors"
             - pkg: math/rand$
               desc: "use math/rand/v2 instead"
+    gocognit:
+      min-complexity: 20
+    gocyclo:
+      min-complexity: 15
     gosec:
       excludes:
         - G104  # unhandled errors are already reported by errcheck
@@ -69,3 +76,9 @@ linters:
       - path: _test\.go$
         linters:
           - gosec
+      # Test functions are naturally long and branchy (table-driven setups,
+      # many subtests); complexity guardrails target production code.
+      - path: _test\.go$
+        linters:
+          - gocognit
+          - gocyclo
