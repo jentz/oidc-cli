@@ -4,6 +4,7 @@ BINARY := oidc-cli
 PKG := ./...
 COVERAGE_OUT := coverage.out
 COVERAGE_HTML := coverage.html
+ACCEPTANCE_BIN := tmp/oidc-cli-acceptance
 
 .DEFAULT_GOAL := help
 
@@ -37,13 +38,19 @@ coverage: ## Run tests with coverage; print total % and write an HTML report
 	@go tool cover -func=$(COVERAGE_OUT) | tail -n 1
 	@go tool cover -html=$(COVERAGE_OUT) -o $(COVERAGE_HTML)
 
+.PHONY: acceptance
+acceptance: ## Run CLI acceptance tests
+	@mkdir -p $(dir $(ACCEPTANCE_BIN))
+	go build -v -o $(ACCEPTANCE_BIN) .
+	OIDC_CLI_BIN=$$(pwd)/$(ACCEPTANCE_BIN) go test -tags=acceptance ./test/acceptance
+
 .PHONY: ci
-ci: tidy lint coverage ## Run the full local gate (tidy + lint + coverage)
+ci: tidy lint coverage acceptance ## Run the full local gate (tidy + lint + coverage + acceptance)
 	@echo "ci: ok"
 
 .PHONY: clean
 clean: ## Remove build and coverage artifacts and the test cache
-	rm -f $(BINARY) $(COVERAGE_OUT) $(COVERAGE_HTML)
+	rm -f $(BINARY) $(ACCEPTANCE_BIN) $(COVERAGE_OUT) $(COVERAGE_HTML)
 	go clean -testcache
 
 .PHONY: lint-clean

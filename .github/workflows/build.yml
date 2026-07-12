@@ -42,3 +42,20 @@ jobs:
           args: build --snapshot --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Run CLI acceptance tests
+        run: make acceptance
