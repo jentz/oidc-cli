@@ -43,7 +43,7 @@ func (b *callbackFiringBrowser) Open(rawURL string) error {
 func fireCallbackAsync(callbackTarget string) <-chan error {
 	callbackErr := make(chan error, 1)
 	go func() {
-		for attempt := 0; attempt < 20; attempt++ {
+		for attempt := 0; attempt < 120; attempt++ {
 			resp, err := http.Get(callbackTarget) //nolint:noctx // test-local loopback request
 			if err == nil {
 				callbackErr <- resp.Body.Close()
@@ -240,10 +240,6 @@ func TestAuthorizationCodeFlowRun(t *testing.T) {
 	}
 }
 
-// TestAuthorizationCodeFlowRunPublicClient pins the PKCE no-secret fallback:
-// with no client secret, the flow's PKCE setup must switch to no client
-// authentication, so the token request carries client_id in the body and no
-// Authorization header (and never an empty-secret Basic header).
 func TestAuthorizationCodeFlowRunNoBrowserPrintsAuthorizationURL(t *testing.T) {
 	t.Parallel()
 
@@ -268,7 +264,7 @@ func TestAuthorizationCodeFlowRunNoBrowserPrintsAuthorizationURL(t *testing.T) {
 		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
 	)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	callbackErr := fireCallbackAsync(callbackTarget)
@@ -333,7 +329,7 @@ func TestAuthorizationCodeFlowRunBrowserFailurePrintsRecoveryInstructions(t *tes
 		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
 	)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	callbackErr := fireCallbackAsync(callbackTarget)
 
@@ -364,6 +360,10 @@ func TestAuthorizationCodeFlowRunBrowserFailurePrintsRecoveryInstructions(t *tes
 	}
 }
 
+// TestAuthorizationCodeFlowRunPublicClient pins the PKCE no-secret fallback:
+// with no client secret, the flow's PKCE setup must switch to no client
+// authentication, so the token request carries client_id in the body and no
+// Authorization header (and never an empty-secret Basic header).
 func TestAuthorizationCodeFlowRunPublicClient(t *testing.T) {
 	t.Parallel()
 
