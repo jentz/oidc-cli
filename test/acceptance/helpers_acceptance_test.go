@@ -1,0 +1,151 @@
+//go:build acceptance
+
+package acceptance
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+)
+
+const (
+	expectedClientID     = "acceptance-client"
+	expectedClientSecret = "acceptance-secret"
+)
+
+type tokenRequest struct {
+	Method        string
+	Authorization string
+	GrantType     string
+	ClientID      string
+	ClientSecret  string
+	RefreshToken  string
+	Scope         string
+}
+
+type tokenEndpointBehavior struct {
+	valid       func(tokenRequest) bool
+	errorStatus int
+	errorBody   map[string]any
+	successBody func(tokenRequest) map[string]any
+}
+
+type tokenProvider struct {
+	server *httptest.Server
+
+	behavior tokenEndpointBehavior
+
+	mu                sync.Mutex
+	discoveryRequests int
+	tokenRequests     []tokenRequest
+}
+
+func newTokenProvider(t *testing.T, behavior tokenEndpointBehavior) *tokenProvider {
+	t.Helper()
+
+	provider := &tokenProvider{behavior: behavior}
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/.well-known/openid-configuration", provider.handleDiscovery)
+	mux.HandleFunc("/token", provider.handleToken)
+
+	provider.server = httptest.NewServer(mux)
+	t.Cleanup(provider.server.Close)
+
+	return provider
+}
+
+func (p *tokenProvider) issuer() string {
+	return p.server.URL
+}
+
+func (p *tokenProvider) requests() (int, []tokenRequest) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	requests := make([]tokenRequest, len(p.tokenRequests))
+	copy(requests, p.tokenRequests)
+	return p.discoveryRequests, requests
+}
+
+func (p *tokenProvider) handleDiscovery(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	p.mu.Lock()
+	p.discoveryRequests++
+	p.mu.Unlock()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"issuer":                                p.server.URL,
+		"token_endpoint":                        p.server.URL + "/token",
+		"token_endpoint_auth_methods_supported": []string{"client_secret_post"},
+	})
+}
+
+func (p *tokenProvider) handleToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
+
+	request := tokenRequest{
+		Method:        r.Method,
+		Authorization: r.Header.Get("Authorization"),
+		GrantType:     r.PostForm.Get("grant_type"),
+		ClientID:      r.PostForm.Get("client_id"),
+		ClientSecret:  r.PostForm.Get("client_secret"),
+		RefreshToken:  r.PostForm.Get("refresh_token"),
+		Scope:         r.PostForm.Get("scope"),
+	}
+
+	p.mu.Lock()
+	p.tokenRequests = append(p.tokenRequests, request)
+	p.mu.Unlock()
+
+	if !p.behavior.valid(request) {
+		writeJSON(w, p.behavior.errorStatus, p.behavior.errorBody)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, p.behavior.successBody(request))
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+
+func assertEqual(t *testing.T, got, want any, name string) {
+	t.Helper()
+
+	if got != want {
+		t.Fatalf("%s: got %#v, want %#v", name, got, want)
+	}
+}
+
+func assertContains(t *testing.T, got, want, name string) {
+	t.Helper()
+
+	if !strings.Contains(got, want) {
+		t.Fatalf("%s: got %#v, want it to contain %#v", name, got, want)
+	}
+}
+
+func assertNotContains(t *testing.T, got, unwanted, name string) {
+	t.Helper()
+
+	if strings.Contains(got, unwanted) {
+		t.Fatalf("%s: got %#v, want it not to contain %#v", name, got, unwanted)
+	}
+}
