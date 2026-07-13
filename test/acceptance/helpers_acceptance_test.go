@@ -17,13 +17,18 @@ const (
 )
 
 type tokenRequest struct {
-	Method        string
-	Authorization string
-	GrantType     string
-	ClientID      string
-	ClientSecret  string
-	RefreshToken  string
-	Scope         string
+	Method             string
+	Authorization      string
+	GrantType          string
+	ClientID           string
+	ClientSecret       string
+	RefreshToken       string
+	Scope              string
+	SubjectToken       string
+	SubjectTokenType   string
+	Audience           string
+	Resource           string
+	RequestedTokenType string
 }
 
 type tokenEndpointBehavior struct {
@@ -106,13 +111,18 @@ func (p *tokenProvider) handleToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	request := tokenRequest{
-		Method:        r.Method,
-		Authorization: r.Header.Get("Authorization"),
-		GrantType:     r.PostForm.Get("grant_type"),
-		ClientID:      r.PostForm.Get("client_id"),
-		ClientSecret:  r.PostForm.Get("client_secret"),
-		RefreshToken:  r.PostForm.Get("refresh_token"),
-		Scope:         r.PostForm.Get("scope"),
+		Method:             r.Method,
+		Authorization:      r.Header.Get("Authorization"),
+		GrantType:          r.PostForm.Get("grant_type"),
+		ClientID:           r.PostForm.Get("client_id"),
+		ClientSecret:       r.PostForm.Get("client_secret"),
+		RefreshToken:       r.PostForm.Get("refresh_token"),
+		Scope:              r.PostForm.Get("scope"),
+		SubjectToken:       r.PostForm.Get("subject_token"),
+		SubjectTokenType:   r.PostForm.Get("subject_token_type"),
+		Audience:           r.PostForm.Get("audience"),
+		Resource:           r.PostForm.Get("resource"),
+		RequestedTokenType: r.PostForm.Get("requested_token_type"),
 	}
 
 	p.mu.Lock()
