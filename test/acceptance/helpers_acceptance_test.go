@@ -82,9 +82,13 @@ func (p *tokenProvider) handleDiscovery(w http.ResponseWriter, r *http.Request) 
 	p.mu.Unlock()
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"issuer":                                p.server.URL,
-		"token_endpoint":                        p.server.URL + "/token",
-		"token_endpoint_auth_methods_supported": []string{"client_secret_post"},
+		"issuer":         p.server.URL,
+		"token_endpoint": p.server.URL + "/token",
+		"token_endpoint_auth_methods_supported": []string{
+			"client_secret_basic",
+			"client_secret_post",
+			"none",
+		},
 	})
 }
 
