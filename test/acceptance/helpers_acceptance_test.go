@@ -22,6 +22,7 @@ type tokenRequest struct {
 	GrantType          string
 	ClientID           string
 	ClientSecret       string
+	DeviceCode         string
 	RefreshToken       string
 	Scope              string
 	SubjectToken       string
@@ -116,6 +117,7 @@ func (p *tokenProvider) handleToken(w http.ResponseWriter, r *http.Request) {
 		GrantType:          r.PostForm.Get("grant_type"),
 		ClientID:           r.PostForm.Get("client_id"),
 		ClientSecret:       r.PostForm.Get("client_secret"),
+		DeviceCode:         r.PostForm.Get("device_code"),
 		RefreshToken:       r.PostForm.Get("refresh_token"),
 		Scope:              r.PostForm.Get("scope"),
 		SubjectToken:       r.PostForm.Get("subject_token"),
