@@ -121,6 +121,10 @@ func (p *authorizationProvider) handleAuthorization(w http.ResponseWriter, r *ht
 	p.authorizationRequests = append(p.authorizationRequests, request)
 	p.mu.Unlock()
 
+	if request.RedirectURI == "" {
+		http.Error(w, "missing redirect_uri", http.StatusBadRequest)
+		return
+	}
 	redirectURL, err := url.Parse(request.RedirectURI)
 	if err != nil {
 		http.Error(w, "invalid redirect_uri", http.StatusBadRequest)
@@ -309,7 +313,12 @@ func runAndFollowAuthorizationURL(t *testing.T, args ...string) Result {
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("start oidc-cli: %v", err)
 	}
+	waitDone := make(chan error, 1)
+	go func() {
+		waitDone <- cmd.Wait()
+	}()
 
+	var waitErr error
 	select {
 	case rawURL := <-authorizationURL:
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
@@ -324,32 +333,30 @@ func runAndFollowAuthorizationURL(t *testing.T, args ...string) Result {
 		if err := response.Body.Close(); err != nil {
 			t.Fatalf("close authorization response: %v", err)
 		}
+		waitErr = <-waitDone
+	case waitErr = <-waitDone:
 	case <-ctx.Done():
-		_ = cmd.Wait()
-		<-stdoutDone
-		<-stderrDone
-		t.Fatalf("timed out waiting for authorization URL\nstderr:\n%s", stderr.String())
+		waitErr = <-waitDone
 	}
 
-	err = cmd.Wait()
-	if ctxErr := ctx.Err(); ctxErr != nil {
-		t.Fatalf("oidc-cli command timed out or cancelled: %v", ctxErr)
-	}
 	if copyErr := <-stdoutDone; copyErr != nil {
 		t.Fatalf("copy stdout: %v", copyErr)
 	}
 	if copyErr := <-stderrDone; copyErr != nil {
 		t.Fatalf("copy stderr: %v", copyErr)
 	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		t.Fatalf("oidc-cli command timed out or cancelled: %v\nstderr:\n%s", ctxErr, stderr.String())
+	}
 
 	result := Result{Stdout: stdout.String(), Stderr: stderr.String()}
-	if err != nil {
+	if waitErr != nil {
 		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if errors.As(waitErr, &exitErr) {
 			result.ExitCode = exitErr.ExitCode()
 			return result
 		}
-		t.Fatalf("failed to run oidc-cli: %v", err)
+		t.Fatalf("failed to run oidc-cli: %v", waitErr)
 	}
 	return result
 }
