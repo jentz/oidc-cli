@@ -312,7 +312,11 @@ func runAndFollowAuthorizationURL(t *testing.T, args ...string) Result {
 
 	select {
 	case rawURL := <-authorizationURL:
-		response, err := http.Get(rawURL) //nolint:noctx // the subprocess context bounds this test-local browser simulation.
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+		if err != nil {
+			t.Fatalf("create authorization request %q: %v", rawURL, err)
+		}
+		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			t.Fatalf("follow authorization URL %q: %v", rawURL, err)
 		}
@@ -357,7 +361,7 @@ func scanStderrForAuthorizationURL(r io.Reader, stderr *bytes.Buffer, authorizat
 		line := scanner.Text()
 		stderr.WriteString(line)
 		stderr.WriteByte('\n')
-		if !sent && strings.HasPrefix(line, "http://") {
+		if !sent && (strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://")) {
 			authorizationURL <- line
 			sent = true
 		}
