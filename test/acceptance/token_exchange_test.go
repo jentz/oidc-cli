@@ -31,7 +31,7 @@ func newTokenExchangeProvider(t *testing.T) *tokenProvider {
 		},
 		successBody: func(tokenRequest) map[string]any {
 			return map[string]any{
-				"access_token":      "exchanged-access-token",
+				"access_token":      "exchanged-token",
 				"issued_token_type": expectedRequestedTokenType,
 				"token_type":        "Bearer",
 				"expires_in":        3600,
@@ -64,7 +64,7 @@ func TestTokenExchangeSuccess(t *testing.T) {
 
 	token := result.JSON(t)
 
-	assertEqual(t, token["access_token"], "exchanged-access-token", "access_token")
+	assertEqual(t, token["access_token"], "exchanged-token", "access_token")
 	assertEqual(t, token["issued_token_type"], expectedRequestedTokenType, "issued_token_type")
 	assertEqual(t, token["token_type"], "Bearer", "token_type")
 	assertEqual(t, token["expires_in"], float64(3600), "expires_in")
