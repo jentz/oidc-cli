@@ -27,10 +27,13 @@ type tokenRequest struct {
 }
 
 type tokenEndpointBehavior struct {
-	valid       func(tokenRequest) bool
-	errorStatus int
-	errorBody   map[string]any
-	successBody func(tokenRequest) map[string]any
+	valid func(tokenRequest) bool
+	// tokenResponse fully owns the token endpoint response when set; the
+	// valid/error/success fields are ignored.
+	tokenResponse func(http.ResponseWriter, tokenRequest)
+	errorStatus   int
+	errorBody     map[string]any
+	successBody   func(tokenRequest) map[string]any
 }
 
 type tokenProvider struct {
@@ -116,6 +119,11 @@ func (p *tokenProvider) handleToken(w http.ResponseWriter, r *http.Request) {
 	p.tokenRequests = append(p.tokenRequests, request)
 	p.mu.Unlock()
 
+	if p.behavior.tokenResponse != nil {
+		p.behavior.tokenResponse(w, request)
+		return
+	}
+
 	if !p.behavior.valid(request) {
 		writeJSON(w, p.behavior.errorStatus, p.behavior.errorBody)
 		return
@@ -128,6 +136,12 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func writeText(w http.ResponseWriter, status int, body string) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(body))
 }
 
 func assertEqual(t *testing.T, got, want any, name string) {
