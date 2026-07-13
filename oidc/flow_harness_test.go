@@ -48,9 +48,10 @@ type capturedRequest struct {
 // calling goroutine; the interactive callback round-trip rides a real loopback
 // listener that never touches this transport, so no append races it.
 type flowFixture struct {
-	config   *Config
-	requests []*capturedRequest
-	output   *bytes.Buffer
+	config    *Config
+	requests  []*capturedRequest
+	output    *bytes.Buffer
+	errOutput *bytes.Buffer
 
 	// dpopPublicKey is the key the fixture's DPoP proofs are bound to, set only
 	// when withDPoPKeys is used, so tests can verify the emitted proof.
@@ -73,9 +74,10 @@ type fixtureSettings struct {
 	// routes overrides the default response per request URL, letting an
 	// interactive flow return a request_uri from the PAR endpoint and a token
 	// from the token endpoint within one Run.
-	routes  map[string]cannedResponse
-	browser webflow.Browser
-	listen  func(network, addr string) (net.Listener, error)
+	routes    map[string]cannedResponse
+	browser   webflow.Browser
+	noBrowser bool
+	listen    func(network, addr string) (net.Listener, error)
 }
 
 type fixtureOption func(*fixtureSettings)
@@ -101,6 +103,11 @@ func withBrowser(b webflow.Browser) fixtureOption {
 // with, letting a test drive the redirect over a pre-bound loopback port.
 func withListener(fn func(network, addr string) (net.Listener, error)) fixtureOption {
 	return func(s *fixtureSettings) { s.listen = fn }
+}
+
+// withNoBrowser suppresses automatic browser launch on the runtime client.
+func withNoBrowser() fixtureOption {
+	return func(s *fixtureSettings) { s.noBrowser = true }
 }
 
 // withAuthMethod overrides the client authentication method (default Basic).
@@ -151,7 +158,7 @@ func newReadyConfig(t *testing.T, opts ...fixtureOption) *flowFixture {
 		opt(settings)
 	}
 
-	fixture := &flowFixture{output: &bytes.Buffer{}}
+	fixture := &flowFixture{output: &bytes.Buffer{}, errOutput: &bytes.Buffer{}}
 
 	transport := mockTransport(func(req *http.Request) (*http.Response, error) {
 		fixture.requests = append(fixture.requests, captureRequest(t, req))
@@ -166,13 +173,13 @@ func newReadyConfig(t *testing.T, opts ...fixtureOption) *flowFixture {
 		}, nil
 	})
 
-	logger := log.New(log.WithOutput(fixture.output, io.Discard))
-	// The client keeps its own (discard) logger so the output buffer captures
-	// the flow's output alone, independent of any client-side logging.
+	logger := log.New(log.WithOutput(fixture.output, fixture.errOutput))
 	client := httpclient.NewClient(&httpclient.Config{
 		Transport: transport,
 		Browser:   settings.browser,
+		NoBrowser: settings.noBrowser,
 		Listen:    settings.listen,
+		Logger:    logger,
 	})
 
 	fixture.config = &Config{

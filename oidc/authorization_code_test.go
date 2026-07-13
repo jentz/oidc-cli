@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jentz/oidc-cli/crypto/cryptotest"
 )
@@ -37,6 +38,22 @@ func (b *callbackFiringBrowser) Open(rawURL string) error {
 		return b.fire()
 	}
 	return nil
+}
+
+func fireCallbackAsync(callbackTarget string) <-chan error {
+	callbackErr := make(chan error, 1)
+	go func() {
+		for attempt := 0; attempt < 120; attempt++ {
+			resp, err := http.Get(callbackTarget) //nolint:noctx // test-local loopback request
+			if err == nil {
+				callbackErr <- resp.Body.Close()
+				return
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+		callbackErr <- fmt.Errorf("callback endpoint did not accept request at %s", callbackTarget)
+	}()
+	return callbackErr
 }
 
 func TestAuthorizationCodeFlowRun(t *testing.T) {
@@ -220,6 +237,126 @@ func TestAuthorizationCodeFlowRun(t *testing.T) {
 				t.Errorf("output = %q, want %q", got, wantOutput)
 			}
 		})
+	}
+}
+
+func TestAuthorizationCodeFlowRunNoBrowserPrintsAuthorizationURL(t *testing.T) {
+	t.Parallel()
+
+	const (
+		callbackURI = "http://localhost/callback"
+		authCode    = "manual-auth-code"
+		state       = "manual-state"
+	)
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("binding loopback listener: %v", err)
+	}
+	callbackTarget := fmt.Sprintf("http://%s/callback?code=%s&state=%s",
+		ln.Addr().String(), url.QueryEscape(authCode), url.QueryEscape(state))
+
+	browser := &recordingBrowser{}
+	fixture := newReadyConfig(t,
+		withNoBrowser(),
+		withBrowser(browser),
+		withListener(func(_, _ string) (net.Listener, error) { return ln, nil }),
+		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	callbackErr := fireCallbackAsync(callbackTarget)
+
+	flow := &AuthorizationCodeFlow{
+		Config: fixture.config,
+		FlowConfig: &AuthorizationCodeFlowConfig{
+			CallbackURI: callbackURI,
+			State:       state,
+		},
+	}
+	if err := flow.Run(ctx); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if err := <-callbackErr; err != nil {
+		t.Fatalf("firing callback: %v", err)
+	}
+
+	if browser.openedURL != "" {
+		t.Errorf("opened URL = %q, want no browser launch", browser.openedURL)
+	}
+	wantAuthorizationURL := "https://op.example.com/authorize?client_id=test-client&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&state=manual-state"
+	wantErr := "Open this URL in a browser to authorize:\n" + wantAuthorizationURL + "\n"
+	if got := fixture.errOutput.String(); got != wantErr {
+		t.Errorf("stderr = %q, want %q", got, wantErr)
+	}
+
+	tokenReq := fixture.onlyRequest(t)
+	if got := tokenReq.Form.Get("code"); got != authCode {
+		t.Errorf("token code = %q, want %q", got, authCode)
+	}
+	wantOutput := `{
+  "access_token": "abc123",
+  "token_type": "Bearer"
+}
+`
+	if got := fixture.output.String(); got != wantOutput {
+		t.Errorf("stdout = %q, want final JSON only", got)
+	}
+}
+
+func TestAuthorizationCodeFlowRunBrowserFailurePrintsRecoveryInstructions(t *testing.T) {
+	t.Parallel()
+
+	const (
+		callbackURI = "http://localhost/callback"
+		authCode    = "recovery-auth-code"
+		state       = "recovery-state"
+	)
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("binding loopback listener: %v", err)
+	}
+	callbackTarget := fmt.Sprintf("http://%s/callback?code=%s&state=%s",
+		ln.Addr().String(), url.QueryEscape(authCode), url.QueryEscape(state))
+
+	browser := &failingBrowser{}
+	fixture := newReadyConfig(t,
+		withBrowser(browser),
+		withListener(func(_, _ string) (net.Listener, error) { return ln, nil }),
+		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	callbackErr := fireCallbackAsync(callbackTarget)
+
+	flow := &AuthorizationCodeFlow{
+		Config: fixture.config,
+		FlowConfig: &AuthorizationCodeFlowConfig{
+			CallbackURI: callbackURI,
+			State:       state,
+		},
+	}
+	if err := flow.Run(ctx); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if err := <-callbackErr; err != nil {
+		t.Fatalf("firing callback: %v", err)
+	}
+
+	wantAuthorizationURL := "https://op.example.com/authorize?client_id=test-client&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&state=recovery-state"
+	if browser.openedURL != wantAuthorizationURL {
+		t.Errorf("opened URL = %q, want %q", browser.openedURL, wantAuthorizationURL)
+	}
+	wantErr := "Unable to open browser automatically: browser command missing\nOpen this URL in a browser to authorize:\n" + wantAuthorizationURL + "\n"
+	if got := fixture.errOutput.String(); got != wantErr {
+		t.Errorf("stderr = %q, want %q", got, wantErr)
+	}
+	if got := fixture.onlyRequest(t).Form.Get("code"); got != authCode {
+		t.Errorf("token code = %q, want %q", got, authCode)
 	}
 }
 

@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -23,6 +24,15 @@ type recordingBrowser struct {
 func (b *recordingBrowser) Open(rawURL string) error {
 	b.openedURL = rawURL
 	return nil
+}
+
+type failingBrowser struct {
+	openedURL string
+}
+
+func (b *failingBrowser) Open(rawURL string) error {
+	b.openedURL = rawURL
+	return errors.New("browser command missing")
 }
 
 func TestDeviceFlowRun(t *testing.T) {
@@ -100,6 +110,67 @@ func TestDeviceFlowRun(t *testing.T) {
 `
 	if got := fixture.output.String(); got != wantOutput {
 		t.Errorf("output = %q, want %q", got, wantOutput)
+	}
+}
+
+func TestDeviceFlowRunNoBrowserPrintsManualInstructions(t *testing.T) {
+	t.Parallel()
+
+	deviceAuthBody := `{"device_code":"dev-code-1","user_code":"WDJB-MJHT","verification_uri":"https://op.example.com/device","interval":5,"expires_in":1800}`
+
+	browser := &recordingBrowser{}
+	fixture := newReadyConfig(t,
+		withNoBrowser(),
+		withBrowser(browser),
+		withRoute(testDeviceAuthEndpoint, http.StatusOK, deviceAuthBody),
+		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
+	)
+
+	flow := &DeviceFlow{Config: fixture.config, FlowConfig: &DeviceFlowConfig{Scope: "openid"}}
+	if err := flow.Run(context.Background()); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if browser.openedURL != "" {
+		t.Errorf("opened URL = %q, want no browser launch", browser.openedURL)
+	}
+	wantErr := "Open this URL in a browser to authorize the device:\nhttps://op.example.com/device\n\nEnter this code:\nWDJB-MJHT\n"
+	if got := fixture.errOutput.String(); got != wantErr {
+		t.Errorf("stderr = %q, want %q", got, wantErr)
+	}
+	wantOutput := `{
+  "access_token": "abc123",
+  "token_type": "Bearer"
+}
+`
+	if got := fixture.output.String(); got != wantOutput {
+		t.Errorf("stdout = %q, want final JSON only", got)
+	}
+}
+
+func TestDeviceFlowRunBrowserFailurePrintsRecoveryInstructions(t *testing.T) {
+	t.Parallel()
+
+	deviceAuthBody := `{"device_code":"dev-code-1","user_code":"WDJB-MJHT","verification_uri":"https://op.example.com/device","verification_uri_complete":"https://op.example.com/device?user_code=WDJB-MJHT","interval":5,"expires_in":1800}`
+
+	browser := &failingBrowser{}
+	fixture := newReadyConfig(t,
+		withBrowser(browser),
+		withRoute(testDeviceAuthEndpoint, http.StatusOK, deviceAuthBody),
+		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
+	)
+
+	flow := &DeviceFlow{Config: fixture.config, FlowConfig: &DeviceFlowConfig{Scope: "openid"}}
+	if err := flow.Run(context.Background()); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if browser.openedURL != "https://op.example.com/device?user_code=WDJB-MJHT" {
+		t.Errorf("opened URL = %q, want verification_uri_complete", browser.openedURL)
+	}
+	wantErr := "Unable to open browser automatically: browser command missing\nOpen this URL in a browser to authorize the device:\nhttps://op.example.com/device?user_code=WDJB-MJHT\n"
+	if got := fixture.errOutput.String(); got != wantErr {
+		t.Errorf("stderr = %q, want %q", got, wantErr)
 	}
 }
 
