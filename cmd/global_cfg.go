@@ -14,6 +14,7 @@ func initGlobalConfig(args []string, logger *log.Logger) (oidcConf *oidc.Config,
 
 	var verbose bool
 	var skipTLSVerify bool
+	var noBrowser bool
 
 	flags = flag.NewFlagSet("global flags", flag.ContinueOnError)
 	var buf bytes.Buffer
@@ -25,6 +26,7 @@ func initGlobalConfig(args []string, logger *log.Logger) (oidcConf *oidc.Config,
 	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", "", "set client secret")
 
 	flags.BoolVar(&skipTLSVerify, "skip-tls-verify", false, "skip TLS certificate verification")
+	flags.BoolVar(&noBrowser, "no-browser", false, "do not open a browser automatically")
 	flags.BoolVar(&verbose, "verbose", false, "enable verbose output")
 
 	err = flags.Parse(args)
@@ -36,6 +38,7 @@ func initGlobalConfig(args []string, logger *log.Logger) (oidcConf *oidc.Config,
 	oidcConf.Runtime.Logger = logger
 	oidcConf.Runtime.Client = httpclient.NewClient(&httpclient.Config{
 		SkipTLSVerify: skipTLSVerify,
+		NoBrowser:     noBrowser,
 		Logger:        logger,
 	})
 

@@ -25,6 +25,8 @@ type Config struct {
 	Logger        *log.Logger       // Logger for client output; if nil, output is discarded
 	// Browser opens authorization URLs; nil falls back to webflow.NewBrowser().
 	Browser webflow.Browser
+	// NoBrowser suppresses automatic browser launch for interactive flows.
+	NoBrowser bool
 	// Listen creates the callback server's listener; nil falls back to net.Listen.
 	Listen func(network, addr string) (net.Listener, error)
 }
@@ -36,6 +38,7 @@ type SleepFunc func(ctx context.Context, d time.Duration) error
 type Client struct {
 	client    *http.Client
 	browser   webflow.Browser
+	noBrowser bool
 	listen    func(network, addr string) (net.Listener, error)
 	sleepFunc SleepFunc // nil falls back to sleepWithContext
 	logger    *log.Logger
@@ -96,15 +99,21 @@ func NewClient(cfg *Config) *Client {
 			Transport: transport,
 			Timeout:   cfg.Timeout,
 		},
-		browser: browser,
-		listen:  listen,
-		logger:  logger,
+		browser:   browser,
+		noBrowser: cfg.NoBrowser,
+		listen:    listen,
+		logger:    logger,
 	}
 }
 
 // OpenURL opens url in the client's browser.
 func (c *Client) OpenURL(rawURL string) error {
 	return c.browser.Open(rawURL)
+}
+
+// BrowserDisabled reports whether automatic browser launch is suppressed.
+func (c *Client) BrowserDisabled() bool {
+	return c.noBrowser
 }
 
 // SetSleepFunc sets a custom sleep function, primarily for testing.

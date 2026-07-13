@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/jentz/oidc-cli/log"
 	"github.com/jentz/oidc-cli/webflow"
 )
 
@@ -122,8 +123,11 @@ func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint, 
 	}
 	c.logger.Printf("authorization request: %s\n", requestURL)
 
-	if err := c.OpenURL(requestURL); err != nil {
-		c.logger.Errorf("unable to open browser because %v, visit %s to continue\n", err, requestURL)
+	if c.BrowserDisabled() {
+		printAuthorizationContinuationInstructions(c.logger, requestURL)
+	} else if err := c.OpenURL(requestURL); err != nil {
+		c.logger.Errorf("Unable to open browser automatically: %v\n", err)
+		printAuthorizationContinuationInstructions(c.logger, requestURL)
 	}
 
 	callbackResp, err := server.WaitForCallback(ctx)
@@ -132,6 +136,10 @@ func (c *Client) ExecuteAuthorizationCodeRequest(ctx context.Context, endpoint, 
 	}
 
 	return validateCallbackResponse(req, callbackResp)
+}
+
+func printAuthorizationContinuationInstructions(logger *log.Logger, requestURL string) {
+	logger.Errorf("Open this URL in a browser to authorize:\n%s\n", requestURL)
 }
 
 // startCallbackServer starts the callback server in the background, returning

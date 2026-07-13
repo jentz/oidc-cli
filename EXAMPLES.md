@@ -34,6 +34,22 @@ If you often execute `oidc-cli` toward the same authorization server and using t
 alias oidc-cli="oidc-cli --issuer <issuer> --client-id <client id>
 ```
 
+### Run browser-based flows without launching a browser
+
+Use the global `--no-browser` flag before the command when running in a headless environment, over SSH, or when you want to open the authorization URL manually. The OAuth flow is unchanged; `oidc-cli` prints manual continuation instructions to stderr and keeps stdout reserved for the final JSON token response.
+
+Authorization code flow:
+
+```sh
+oidc-cli --no-browser authorization_code [--pkce]
+```
+
+Device flow:
+
+```sh
+oidc-cli --no-browser device
+```
+
 ## Authenticate and retrieve access token
 
 Run a regular authorization code flow (with or without PKCE)

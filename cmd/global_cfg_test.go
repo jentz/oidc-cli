@@ -120,6 +120,32 @@ func TestParseGlobalFlagsResult(t *testing.T) {
 	}
 }
 
+func TestInitGlobalConfigWiresNoBrowser(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want bool
+	}{
+		{"flag disables browser", []string{"--no-browser"}, true},
+		{"default leaves browser enabled", nil, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			conf, _, err := initGlobalConfig(tt.args, log.Discard())
+			if err != nil {
+				t.Fatalf("initGlobalConfig: %v", err)
+			}
+			if got := conf.Runtime.Client.BrowserDisabled(); got != tt.want {
+				t.Errorf("BrowserDisabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // TestInitGlobalConfigWiresSkipTLSVerify pins that --skip-tls-verify is wired
 // from the command boundary through to the constructed client: with the flag,
 // the client reaches a self-signed server; without it, the same server is

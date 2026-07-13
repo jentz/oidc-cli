@@ -6,6 +6,7 @@ import (
 
 	"github.com/jentz/oidc-cli/crypto"
 	"github.com/jentz/oidc-cli/httpclient"
+	"github.com/jentz/oidc-cli/log"
 )
 
 type DeviceFlow struct {
@@ -47,18 +48,22 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 	}
 
 	logger := c.Config.Runtime.Logger
-	if deviceAuthResp.VerificationURIComplete != "" {
-		verificationURI := deviceAuthResp.VerificationURIComplete
+	verificationURI := deviceAuthResp.VerificationURIComplete
+	userCode := ""
+	if verificationURI == "" {
+		verificationURI = deviceAuthResp.VerificationURI
+		userCode = deviceAuthResp.UserCode
+	}
+	if userCode == "" {
 		logger.Printf("device verification uri: %s\n", verificationURI)
-		if err := client.OpenURL(verificationURI); err != nil {
-			logger.Errorf("failed to open verification uri %s in the browser: %v\n", verificationURI, err)
-		}
 	} else {
-		verificationURI := deviceAuthResp.VerificationURI
-		logger.Printf("device verification uri: %s, verification code: %s\n", verificationURI, deviceAuthResp.UserCode)
-		if err := client.OpenURL(verificationURI); err != nil {
-			logger.Errorf("failed to open verification uri %s in the browser: %v\n", verificationURI, err)
-		}
+		logger.Printf("device verification uri: %s, verification code: %s\n", verificationURI, userCode)
+	}
+	if client.BrowserDisabled() {
+		printDeviceContinuationInstructions(logger, verificationURI, userCode)
+	} else if err := client.OpenURL(verificationURI); err != nil {
+		logger.Errorf("Unable to open browser automatically: %v\n", err)
+		printDeviceContinuationInstructions(logger, verificationURI, userCode)
 	}
 
 	// Poll for token
@@ -84,4 +89,11 @@ func (c *DeviceFlow) Run(ctx context.Context) error {
 	}
 
 	return logger.OutputJSON(tokenData)
+}
+
+func printDeviceContinuationInstructions(logger *log.Logger, verificationURI, userCode string) {
+	logger.Errorf("Open this URL in a browser to authorize the device:\n%s\n", verificationURI)
+	if userCode != "" {
+		logger.Errorf("\nEnter this code:\n%s\n", userCode)
+	}
 }
