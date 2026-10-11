@@ -22,6 +22,7 @@ type AuthorizationCodeRequest struct {
 	RedirectURI         string
 	Scope               string
 	State               string
+	Nonce               string
 	Prompt              string
 	AcrValues           string
 	LoginHint           string
@@ -50,38 +51,24 @@ func CreateAuthorizationCodeRequestValues(req *AuthorizationCodeRequest) (*url.V
 	values.Set("client_id", req.ClientID)
 
 	// Add standard params if set
-	if req.State != "" {
-		values.Set("state", req.State)
+	optional := []struct{ key, value string }{
+		{"state", req.State},
+		{"nonce", req.Nonce},
+		{"redirect_uri", req.RedirectURI},
+		{"scope", req.Scope},
+		{"prompt", req.Prompt},
+		{"acr_values", req.AcrValues},
+		{"login_hint", req.LoginHint},
+		{"max_age", req.MaxAge},
+		{"ui_locales", req.UILocales},
+		{"code_challenge_method", req.CodeChallengeMethod},
+		{"code_challenge", req.CodeChallenge},
+		{"request_uri", req.RequestURI},
 	}
-	if req.RedirectURI != "" {
-		values.Set("redirect_uri", req.RedirectURI)
-	}
-	if req.Scope != "" {
-		values.Set("scope", req.Scope)
-	}
-	if req.Prompt != "" {
-		values.Set("prompt", req.Prompt)
-	}
-	if req.AcrValues != "" {
-		values.Set("acr_values", req.AcrValues)
-	}
-	if req.LoginHint != "" {
-		values.Set("login_hint", req.LoginHint)
-	}
-	if req.MaxAge != "" {
-		values.Set("max_age", req.MaxAge)
-	}
-	if req.UILocales != "" {
-		values.Set("ui_locales", req.UILocales)
-	}
-	if req.CodeChallengeMethod != "" {
-		values.Set("code_challenge_method", req.CodeChallengeMethod)
-	}
-	if req.CodeChallenge != "" {
-		values.Set("code_challenge", req.CodeChallenge)
-	}
-	if req.RequestURI != "" {
-		values.Set("request_uri", req.RequestURI)
+	for _, p := range optional {
+		if p.value != "" {
+			values.Set(p.key, p.value)
+		}
 	}
 
 	// Add custom args

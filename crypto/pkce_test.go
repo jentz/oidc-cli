@@ -61,3 +61,29 @@ func TestGenerateState(t *testing.T) {
 		t.Errorf("expected a new state per call, got %q twice", state)
 	}
 }
+
+func TestGenerateNonce(t *testing.T) {
+	t.Parallel()
+	nonce, err := GenerateNonce()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// 32 bytes base64url-encoded is 43 chars (without padding)
+	if len(nonce) != 43 {
+		t.Errorf("expected nonce length 43, got %d", len(nonce))
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(nonce)
+	if err != nil {
+		t.Errorf("nonce is not valid base64url: %v", err)
+	}
+	if len(decoded) != 32 {
+		t.Errorf("expected 32 random bytes, got %d", len(decoded))
+	}
+	other, err := GenerateNonce()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nonce == other {
+		t.Errorf("expected a new nonce per call, got %q twice", nonce)
+	}
+}

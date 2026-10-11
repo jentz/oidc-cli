@@ -31,3 +31,14 @@ func GenerateState() (string, error) {
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
+
+// GenerateNonce returns a random OpenID Connect nonce value: 32 bytes from a
+// cryptographic source, base64url-encoded without padding (43 chars).
+func GenerateNonce() (string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to read from random to generate nonce: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}

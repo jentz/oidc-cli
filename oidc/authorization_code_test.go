@@ -248,6 +248,7 @@ func TestAuthorizationCodeFlowRunNoBrowserPrintsAuthorizationURL(t *testing.T) {
 		callbackURI = "http://localhost/callback"
 		authCode    = "manual-auth-code"
 		state       = "manual-state"
+		nonce       = "manual-nonce"
 	)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -275,6 +276,7 @@ func TestAuthorizationCodeFlowRunNoBrowserPrintsAuthorizationURL(t *testing.T) {
 		FlowConfig: &AuthorizationCodeFlowConfig{
 			CallbackURI: callbackURI,
 			State:       state,
+			Nonce:       nonce,
 		},
 	}
 	if err := flow.Run(ctx); err != nil {
@@ -287,7 +289,7 @@ func TestAuthorizationCodeFlowRunNoBrowserPrintsAuthorizationURL(t *testing.T) {
 	if browser.openedURL != "" {
 		t.Errorf("opened URL = %q, want no browser launch", browser.openedURL)
 	}
-	wantAuthorizationURL := "https://op.example.com/authorize?client_id=test-client&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&state=manual-state"
+	wantAuthorizationURL := "https://op.example.com/authorize?client_id=test-client&nonce=manual-nonce&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&state=manual-state"
 	wantErr := "Open this URL in a browser to authorize:\n" + wantAuthorizationURL + "\n"
 	if got := fixture.errOutput.String(); got != wantErr {
 		t.Errorf("stderr = %q, want %q", got, wantErr)
@@ -314,6 +316,7 @@ func TestAuthorizationCodeFlowRunBrowserFailurePrintsRecoveryInstructions(t *tes
 		callbackURI = "http://localhost/callback"
 		authCode    = "recovery-auth-code"
 		state       = "recovery-state"
+		nonce       = "recovery-nonce"
 	)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -339,6 +342,7 @@ func TestAuthorizationCodeFlowRunBrowserFailurePrintsRecoveryInstructions(t *tes
 		FlowConfig: &AuthorizationCodeFlowConfig{
 			CallbackURI: callbackURI,
 			State:       state,
+			Nonce:       nonce,
 		},
 	}
 	if err := flow.Run(ctx); err != nil {
@@ -348,7 +352,7 @@ func TestAuthorizationCodeFlowRunBrowserFailurePrintsRecoveryInstructions(t *tes
 		t.Fatalf("firing callback: %v", err)
 	}
 
-	wantAuthorizationURL := "https://op.example.com/authorize?client_id=test-client&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&state=recovery-state"
+	wantAuthorizationURL := "https://op.example.com/authorize?client_id=test-client&nonce=recovery-nonce&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&state=recovery-state"
 	if browser.openedURL != wantAuthorizationURL {
 		t.Errorf("opened URL = %q, want %q", browser.openedURL, wantAuthorizationURL)
 	}
@@ -554,18 +558,21 @@ func TestAuthorizationCodeFlowRunStateMismatch(t *testing.T) {
 	}
 }
 
-// stateRun records the state a single Run put on the wire.
-type stateRun struct {
-	urlState    string // state in the opened authorization URL
-	parState    string // state in the PAR body, when PAR is enabled
-	parHasState bool
-	err         error
+// interactiveRun records what a single interactive Run put on the wire and
+// wrote to stdout.
+type interactiveRun struct {
+	authQuery url.Values // query of the opened authorization URL
+	parForm   url.Values // PAR body, when PAR is enabled
+	output    string
+	err       error
 }
 
-// runForState drives Run once with the given flow configuration. The fake
+// runInteractive drives Run once with the given flow configuration. The fake
 // browser echoes the state from the opened authorization URL back to the
 // callback, unless callbackState overrides what the redirect carries.
-func runForState(t *testing.T, flowConf *AuthorizationCodeFlowConfig, callbackState func(sent string) string) stateRun {
+// tokenBody builds the token response from the opened authorization URL's
+// query; nil gives a response without an ID Token.
+func runInteractive(t *testing.T, flowConf *AuthorizationCodeFlowConfig, callbackState func(sent string) string, tokenBody func(authQuery url.Values) string) interactiveRun {
 	t.Helper()
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -591,11 +598,25 @@ func runForState(t *testing.T, flowConf *AuthorizationCodeFlowConfig, callbackSt
 		}
 		return resp.Body.Close()
 	}
+	openedQuery := func() url.Values {
+		opened, err := url.Parse(browser.openedURL)
+		if err != nil {
+			return nil
+		}
+		return opened.Query()
+	}
 
 	opts := []fixtureOption{
 		withBrowser(browser),
 		withListener(func(_, _ string) (net.Listener, error) { return ln, nil }),
 		withResponse(http.StatusOK, `{"access_token":"abc123","token_type":"Bearer"}`),
+	}
+	if tokenBody != nil {
+		// The browser opens the authorization URL on the flow's goroutine
+		// before the token request, so the opened URL is set by now.
+		opts = append(opts, withRouteFunc(testTokenEndpoint, func() cannedResponse {
+			return cannedResponse{status: http.StatusOK, body: tokenBody(openedQuery())}
+		}))
 	}
 	if flowConf.PAR {
 		opts = append(opts, withRoute(testPAREndpoint, http.StatusCreated,
@@ -609,14 +630,12 @@ func runForState(t *testing.T, flowConf *AuthorizationCodeFlowConfig, callbackSt
 	flowConf.CallbackURI = "http://localhost/callback"
 	flow := &AuthorizationCodeFlow{Config: fixture.config, FlowConfig: flowConf}
 
-	run := stateRun{err: flow.Run(ctx)}
-	if opened, err := url.Parse(browser.openedURL); err == nil {
-		run.urlState = opened.Query().Get("state")
-	}
+	run := interactiveRun{err: flow.Run(ctx)}
+	run.authQuery = openedQuery()
 	if flowConf.PAR && len(fixture.requests) > 0 {
-		run.parHasState = fixture.requests[0].Form.Has("state")
-		run.parState = fixture.requests[0].Form.Get("state")
+		run.parForm = fixture.requests[0].Form
 	}
+	run.output = fixture.output.String()
 	return run
 }
 
@@ -649,20 +668,21 @@ func TestAuthorizationCodeFlowRunStateSource(t *testing.T) {
 				t.Parallel()
 
 				flowConf := &AuthorizationCodeFlowConfig{State: tt.state, CustomArgs: tt.customArgs, PAR: par}
-				run := runForState(t, flowConf, nil)
+				run := runInteractive(t, flowConf, nil, nil)
 				if run.err != nil {
 					t.Fatalf("Run() error = %v", run.err)
 				}
 
+				sent := run.authQuery.Get("state")
 				if tt.want != "" {
-					if run.urlState != tt.want {
-						t.Errorf("authorization state = %q, want %q", run.urlState, tt.want)
+					if sent != tt.want {
+						t.Errorf("authorization state = %q, want %q", sent, tt.want)
 					}
-				} else if len(run.urlState) < 8 {
-					t.Errorf("authorization state = %q, want a generated value of at least 8 characters", run.urlState)
+				} else if len(sent) < 8 {
+					t.Errorf("authorization state = %q, want a generated value of at least 8 characters", sent)
 				}
-				if par && (!run.parHasState || run.parState != run.urlState) {
-					t.Errorf("PAR state = %q (present %t), want %q", run.parState, run.parHasState, run.urlState)
+				if par && (!run.parForm.Has("state") || run.parForm.Get("state") != sent) {
+					t.Errorf("PAR state = %q (present %t), want %q", run.parForm.Get("state"), run.parForm.Has("state"), sent)
 				}
 				// The generated value lives only in the run; the user's
 				// configuration is not written back.
@@ -675,19 +695,19 @@ func TestAuthorizationCodeFlowRunStateSource(t *testing.T) {
 
 	t.Run("generated state differs between runs", func(t *testing.T) {
 		t.Parallel()
-		first := runForState(t, &AuthorizationCodeFlowConfig{}, nil)
-		second := runForState(t, &AuthorizationCodeFlowConfig{}, nil)
+		first := runInteractive(t, &AuthorizationCodeFlowConfig{}, nil, nil)
+		second := runInteractive(t, &AuthorizationCodeFlowConfig{}, nil, nil)
 		if first.err != nil || second.err != nil {
 			t.Fatalf("Run() errors = %v, %v", first.err, second.err)
 		}
-		if first.urlState == second.urlState {
-			t.Errorf("both runs sent state %q, want a new value per run", first.urlState)
+		if first.authQuery.Get("state") == second.authQuery.Get("state") {
+			t.Errorf("both runs sent state %q, want a new value per run", first.authQuery.Get("state"))
 		}
 	})
 
 	t.Run("generated state is checked on the callback", func(t *testing.T) {
 		t.Parallel()
-		run := runForState(t, &AuthorizationCodeFlowConfig{}, func(string) string { return "attacker-state" })
+		run := runInteractive(t, &AuthorizationCodeFlowConfig{}, func(string) string { return "attacker-state" }, nil)
 		if run.err == nil || !strings.Contains(run.err.Error(), "state mismatch") {
 			t.Errorf("Run() error = %v, want a state mismatch", run.err)
 		}
@@ -701,9 +721,237 @@ func TestAuthorizationCodeFlowRunStateSource(t *testing.T) {
 		}
 		// A callback echoing the --state value instead of the sent custom
 		// value must be rejected.
-		run := runForState(t, flowConf, func(string) string { return "user-state" })
+		run := runInteractive(t, flowConf, func(string) string { return "user-state" }, nil)
 		if run.err == nil || !strings.Contains(run.err.Error(), "state mismatch") {
 			t.Errorf("Run() error = %v, want a state mismatch", run.err)
+		}
+	})
+}
+
+// TestAuthorizationCodeFlowRunNonceSource proves which nonce the flow sends:
+// --custom nonce wins over --nonce and --no-nonce; --no-nonce sends none;
+// --nonce is sent unchanged; otherwise a value is generated per run. The same
+// value reaches the authorization URL and the PAR body.
+func TestAuthorizationCodeFlowRunNonceSource(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		nonce      string
+		noNonce    bool
+		customArgs *httpclient.CustomArgs
+		wantSent   bool
+		want       string // empty with wantSent means a generated value
+	}{
+		{name: "generated by default", wantSent: true},
+		{name: "--nonce is sent unchanged", nonce: "user-nonce", wantSent: true, want: "user-nonce"},
+		{name: "--no-nonce sends no nonce", noNonce: true},
+		{
+			name:       "--custom nonce wins over --nonce",
+			nonce:      "user-nonce",
+			customArgs: &httpclient.CustomArgs{"nonce": "custom-nonce"},
+			wantSent:   true,
+			want:       "custom-nonce",
+		},
+		{
+			name:       "--custom nonce wins over --no-nonce",
+			noNonce:    true,
+			customArgs: &httpclient.CustomArgs{"nonce": "custom-nonce"},
+			wantSent:   true,
+			want:       "custom-nonce",
+		},
+		{
+			name:       "empty --custom nonce is sent empty",
+			customArgs: &httpclient.CustomArgs{"nonce": ""},
+			wantSent:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		for _, par := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s par=%t", tt.name, par), func(t *testing.T) {
+				t.Parallel()
+
+				flowConf := &AuthorizationCodeFlowConfig{
+					Nonce: tt.nonce, NoNonce: tt.noNonce, CustomArgs: tt.customArgs, PAR: par,
+				}
+				run := runInteractive(t, flowConf, nil, nil)
+				if run.err != nil {
+					t.Fatalf("Run() error = %v", run.err)
+				}
+
+				sent := run.authQuery.Get("nonce")
+				switch {
+				case !tt.wantSent:
+					if run.authQuery.Has("nonce") {
+						t.Errorf("authorization nonce = %q, want no nonce parameter", sent)
+					}
+				case !run.authQuery.Has("nonce"):
+					t.Errorf("authorization URL has no nonce parameter, want one")
+				case tt.want != "":
+					if sent != tt.want {
+						t.Errorf("authorization nonce = %q, want %q", sent, tt.want)
+					}
+				case tt.customArgs != nil:
+					if sent != "" {
+						t.Errorf("authorization nonce = %q, want an empty value", sent)
+					}
+				case len(sent) != 43:
+					t.Errorf("authorization nonce = %q, want a generated 43-character value", sent)
+				}
+				if par && (run.parForm.Has("nonce") != run.authQuery.Has("nonce") || run.parForm.Get("nonce") != sent) {
+					t.Errorf("PAR nonce = %q (present %t), want %q (present %t)",
+						run.parForm.Get("nonce"), run.parForm.Has("nonce"), sent, run.authQuery.Has("nonce"))
+				}
+				// The generated value lives only in the run; the user's
+				// configuration is not written back.
+				if flowConf.Nonce != tt.nonce {
+					t.Errorf("FlowConfig.Nonce = %q, want it unchanged at %q", flowConf.Nonce, tt.nonce)
+				}
+			})
+		}
+	}
+
+	t.Run("generated nonce differs between runs", func(t *testing.T) {
+		t.Parallel()
+		first := runInteractive(t, &AuthorizationCodeFlowConfig{}, nil, nil)
+		second := runInteractive(t, &AuthorizationCodeFlowConfig{}, nil, nil)
+		if first.err != nil || second.err != nil {
+			t.Fatalf("Run() errors = %v, %v", first.err, second.err)
+		}
+		if first.authQuery.Get("nonce") == second.authQuery.Get("nonce") {
+			t.Errorf("both runs sent nonce %q, want a new value per run", first.authQuery.Get("nonce"))
+		}
+	})
+}
+
+// unsignedIDToken returns a JWT-shaped ID Token with the given JSON payload.
+// The flow checks the nonce claim without a signature check, so the header
+// and signature only need the JWT shape.
+func unsignedIDToken(payload string) string {
+	enc := base64.RawURLEncoding.EncodeToString
+	return enc([]byte(`{"alg":"none","typ":"JWT"}`)) + "." + enc([]byte(payload)) + "." + enc([]byte("signature"))
+}
+
+// tokenResponseWithIDToken returns a token response body carrying idToken.
+func tokenResponseWithIDToken(idToken string) string {
+	return fmt.Sprintf(`{"access_token":"abc123","token_type":"Bearer","id_token":%q}`, idToken)
+}
+
+// TestAuthorizationCodeFlowRunNonceCheck proves the nonce check on the ID
+// Token: a matching claim succeeds; a forged, missing, or undecodable claim
+// fails the run but still prints the token data, so the user sees the
+// authorization server's real response.
+func TestAuthorizationCodeFlowRunNonceCheck(t *testing.T) {
+	t.Parallel()
+
+	echoNonce := func(q url.Values) string {
+		return tokenResponseWithIDToken(unsignedIDToken(fmt.Sprintf(`{"sub":"user","nonce":%q}`, q.Get("nonce"))))
+	}
+	fixed := func(body string) func(url.Values) string {
+		return func(url.Values) string { return body }
+	}
+	forged := tokenResponseWithIDToken(unsignedIDToken(`{"sub":"user","nonce":"forged-nonce"}`))
+
+	tests := []struct {
+		name      string
+		flowConf  *AuthorizationCodeFlowConfig
+		tokenBody func(url.Values) string
+		wantErr   string // empty means success
+	}{
+		{name: "matching generated nonce", flowConf: &AuthorizationCodeFlowConfig{}, tokenBody: echoNonce},
+		{name: "matching --nonce", flowConf: &AuthorizationCodeFlowConfig{Nonce: "user-nonce"}, tokenBody: echoNonce},
+		{name: "forged nonce", flowConf: &AuthorizationCodeFlowConfig{}, tokenBody: fixed(forged), wantErr: "nonce mismatch"},
+		{
+			name:      "missing nonce claim",
+			flowConf:  &AuthorizationCodeFlowConfig{},
+			tokenBody: fixed(tokenResponseWithIDToken(unsignedIDToken(`{"sub":"user"}`))),
+			wantErr:   "nonce",
+		},
+		{
+			name:      "ID Token without three parts",
+			flowConf:  &AuthorizationCodeFlowConfig{},
+			tokenBody: fixed(tokenResponseWithIDToken("not-a-jwt")),
+			wantErr:   "id_token",
+		},
+		{
+			name:      "ID Token payload is not JSON",
+			flowConf:  &AuthorizationCodeFlowConfig{},
+			tokenBody: fixed(tokenResponseWithIDToken("e30." + base64.RawURLEncoding.EncodeToString([]byte("not json")) + ".c2ln")),
+			wantErr:   "id_token",
+		},
+		{
+			name:      "ID Token payload is not base64url",
+			flowConf:  &AuthorizationCodeFlowConfig{},
+			tokenBody: fixed(tokenResponseWithIDToken("e30.!!!.c2ln")),
+			wantErr:   "id_token",
+		},
+		{
+			name:      "id_token is not a string",
+			flowConf:  &AuthorizationCodeFlowConfig{},
+			tokenBody: fixed(`{"access_token":"abc123","id_token":42}`),
+			wantErr:   "id_token",
+		},
+		{
+			// Only the JWT shape and the payload are read.
+			name:     "unusual header and signature do not hide the nonce",
+			flowConf: &AuthorizationCodeFlowConfig{},
+			tokenBody: func(q url.Values) string {
+				payload := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"nonce":%q}`, q.Get("nonce"))))
+				return tokenResponseWithIDToken("not-json." + payload + ".not-base64!")
+			},
+		},
+		{
+			name:      "nonce claim is not a string",
+			flowConf:  &AuthorizationCodeFlowConfig{Nonce: "123"},
+			tokenBody: fixed(tokenResponseWithIDToken(unsignedIDToken(`{"nonce":123}`))),
+			wantErr:   "nonce claim is not a string: got 123",
+		},
+		{name: "no ID Token", flowConf: &AuthorizationCodeFlowConfig{}, tokenBody: fixed(`{"access_token":"abc123","token_type":"Bearer"}`)},
+		{name: "--no-nonce skips the check", flowConf: &AuthorizationCodeFlowConfig{NoNonce: true}, tokenBody: fixed(forged)},
+		{
+			name:      "empty --custom nonce skips the check",
+			flowConf:  &AuthorizationCodeFlowConfig{CustomArgs: &httpclient.CustomArgs{"nonce": ""}},
+			tokenBody: fixed(forged),
+		},
+		{
+			// An ID Token echoing the --nonce value instead of the sent custom
+			// value must be rejected.
+			name: "--custom nonce is checked",
+			flowConf: &AuthorizationCodeFlowConfig{
+				Nonce:      "user-nonce",
+				CustomArgs: &httpclient.CustomArgs{"nonce": "custom-nonce"},
+			},
+			tokenBody: fixed(tokenResponseWithIDToken(unsignedIDToken(`{"nonce":"user-nonce"}`))),
+			wantErr:   "nonce mismatch",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			run := runInteractive(t, tt.flowConf, nil, tt.tokenBody)
+			if tt.wantErr == "" {
+				if run.err != nil {
+					t.Fatalf("Run() error = %v, want success", run.err)
+				}
+			} else if run.err == nil || !strings.Contains(run.err.Error(), tt.wantErr) {
+				t.Fatalf("Run() error = %v, want an error containing %q", run.err, tt.wantErr)
+			}
+			// The token data is printed whether or not the check passes.
+			if !strings.Contains(run.output, `"access_token": "abc123"`) {
+				t.Errorf("stdout = %q, want the token data", run.output)
+			}
+		})
+	}
+
+	t.Run("mismatch names both values", func(t *testing.T) {
+		t.Parallel()
+		run := runInteractive(t, &AuthorizationCodeFlowConfig{Nonce: "user-nonce"}, nil, fixed(forged))
+		want := `nonce mismatch: expected "user-nonce" but got "forged-nonce"`
+		if run.err == nil || !strings.Contains(run.err.Error(), want) {
+			t.Errorf("Run() error = %v, want it to contain %q", run.err, want)
 		}
 	})
 }
