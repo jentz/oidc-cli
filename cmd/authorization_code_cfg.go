@@ -46,7 +46,7 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 	flags.StringVar(&flowConf.LoginHint, "login-hint", "", "set login_hint parameter")
 	flags.StringVar(&flowConf.MaxAge, "max-age", "", "set max_age parameter")
 	flags.StringVar(&flowConf.UILocales, "ui-locales", "", "set ui_locales parameter")
-	flags.StringVar(&flowConf.State, "state", "", "set state parameter")
+	flags.StringVar(&flowConf.State, "state", "", "set state parameter (default: random value per run)")
 	var customArgs CustomArgsFlag
 	flags.Var(&customArgs, "custom", "custom authorization parameters, argument can be given multiple times")
 	flags.BoolVar(&flowConf.PKCE, "pkce", false, "use proof-key for code exchange (PKCE)")

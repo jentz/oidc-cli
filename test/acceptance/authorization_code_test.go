@@ -24,6 +24,7 @@ import (
 const (
 	expectedAuthorizationCode  = "acceptance-auth-code"
 	expectedAuthorizationState = "acceptance-state"
+	forgedAuthorizationState   = "forged-state"
 )
 
 type authorizationRequest struct {
@@ -46,6 +47,9 @@ const (
 	// callbackErrorWithoutState models providers that omit state on an error
 	// redirect.
 	callbackErrorWithoutState
+	// callbackCodeWithForgedState returns a code with a state the client never
+	// sent, as a forged callback would.
+	callbackCodeWithForgedState
 )
 
 type authorizationProvider struct {
@@ -144,12 +148,18 @@ func (p *authorizationProvider) handleAuthorization(w http.ResponseWriter, r *ht
 		return
 	}
 	redirectQuery := redirectURL.Query()
-	if p.outcome != callbackErrorWithoutState {
+	switch p.outcome {
+	case callbackCode:
 		redirectQuery.Set("state", request.State)
-	}
-	if p.outcome == callbackCode {
 		redirectQuery.Set("code", expectedAuthorizationCode)
-	} else {
+	case callbackCodeWithForgedState:
+		redirectQuery.Set("state", forgedAuthorizationState)
+		redirectQuery.Set("code", expectedAuthorizationCode)
+	case callbackError:
+		redirectQuery.Set("state", request.State)
+		redirectQuery.Set("error", "access_denied")
+		redirectQuery.Set("error_description", "user denied authorization")
+	case callbackErrorWithoutState:
 		redirectQuery.Set("error", "access_denied")
 		redirectQuery.Set("error_description", "user denied authorization")
 	}
@@ -200,11 +210,13 @@ func (p *authorizationProvider) handleToken(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// TestAuthorizationCodeFlowSuccess also covers --state: the given value is
+// sent unchanged and checked on the callback.
 func TestAuthorizationCodeFlowSuccess(t *testing.T) {
 	provider := newAuthorizationProvider(t, callbackCode)
 	callbackURI := reserveLoopbackCallbackURI(t)
 
-	result := runAuthorizationCodeFlow(t, provider, callbackURI)
+	result := runAuthorizationCodeFlow(t, provider, callbackURI, "--state", expectedAuthorizationState)
 
 	if result.ExitCode != 0 {
 		t.Fatalf("expected exit code 0, got %d\nstderr:\n%s\nstdout:\n%s", result.ExitCode, result.Stderr, result.Stdout)
@@ -219,7 +231,37 @@ func TestAuthorizationCodeFlowSuccess(t *testing.T) {
 	assertEqual(t, token["expires_in"], float64(3600), "expires_in")
 	assertEqual(t, token["scope"], "openid profile", "scope")
 
-	assertAuthorizationCodeRequests(t, provider, callbackURI, true)
+	assertAuthorizationCodeRequests(t, provider, callbackURI, expectedAuthorizationState, true)
+}
+
+func TestAuthorizationCodeFlowGeneratedState(t *testing.T) {
+	provider := newAuthorizationProvider(t, callbackCode)
+	callbackURI := reserveLoopbackCallbackURI(t)
+
+	result := runAuthorizationCodeFlow(t, provider, callbackURI)
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d\nstderr:\n%s\nstdout:\n%s", result.ExitCode, result.Stderr, result.Stdout)
+	}
+	token := result.JSON(t)
+	assertEqual(t, token["access_token"], "acceptance-authorization-code-token", "access_token")
+
+	assertAuthorizationCodeRequests(t, provider, callbackURI, "", true)
+}
+
+func TestAuthorizationCodeFlowForgedState(t *testing.T) {
+	provider := newAuthorizationProvider(t, callbackCodeWithForgedState)
+	callbackURI := reserveLoopbackCallbackURI(t)
+
+	result := runAuthorizationCodeFlow(t, provider, callbackURI)
+
+	if result.ExitCode == 0 {
+		t.Fatalf("expected non-zero exit code\nstdout:\n%s\nstderr:\n%s", result.Stdout, result.Stderr)
+	}
+	assertEqual(t, result.Stdout, "", "stdout")
+	assertContains(t, result.Stderr, "state mismatch", "stderr")
+
+	assertAuthorizationCodeRequests(t, provider, callbackURI, "", false)
 }
 
 func TestAuthorizationCodeFlowCallbackError(t *testing.T) {
@@ -236,7 +278,7 @@ func TestAuthorizationCodeFlowCallbackError(t *testing.T) {
 			provider := newAuthorizationProvider(t, tt.outcome)
 			callbackURI := reserveLoopbackCallbackURI(t)
 
-			result := runAuthorizationCodeFlow(t, provider, callbackURI)
+			result := runAuthorizationCodeFlow(t, provider, callbackURI, "--state", expectedAuthorizationState)
 
 			if result.ExitCode == 0 {
 				t.Fatalf("expected non-zero exit code\nstdout:\n%s\nstderr:\n%s", result.Stdout, result.Stderr)
@@ -249,15 +291,15 @@ func TestAuthorizationCodeFlowCallbackError(t *testing.T) {
 			assertNotContains(t, result.Stderr, expectedClientSecret, "stderr")
 			assertNotContains(t, result.Stdout, expectedClientSecret, "stdout")
 
-			assertAuthorizationCodeRequests(t, provider, callbackURI, false)
+			assertAuthorizationCodeRequests(t, provider, callbackURI, expectedAuthorizationState, false)
 		})
 	}
 }
 
-func runAuthorizationCodeFlow(t *testing.T, provider *authorizationProvider, callbackURI string) Result {
+func runAuthorizationCodeFlow(t *testing.T, provider *authorizationProvider, callbackURI string, extraArgs ...string) Result {
 	t.Helper()
 
-	return runAndFollowAuthorizationURL(t,
+	args := []string{
 		"--no-browser",
 		"authorization_code",
 		"--issuer", provider.issuer(),
@@ -266,12 +308,14 @@ func runAuthorizationCodeFlow(t *testing.T, provider *authorizationProvider, cal
 		"--auth-method", "client_secret_post",
 		"--callback-uri", callbackURI,
 		"--scope", "openid profile",
-		"--state", expectedAuthorizationState,
 		"--pkce",
-	)
+	}
+	return runAndFollowAuthorizationURL(t, append(args, extraArgs...)...)
 }
 
-func assertAuthorizationCodeRequests(t *testing.T, provider *authorizationProvider, callbackURI string, expectTokenRequest bool) {
+// assertAuthorizationCodeRequests checks the requests the provider received.
+// An empty wantState expects a generated state of at least 8 characters.
+func assertAuthorizationCodeRequests(t *testing.T, provider *authorizationProvider, callbackURI, wantState string, expectTokenRequest bool) {
 	t.Helper()
 
 	discoveryRequests, authorizationRequests, tokenRequests := provider.requests()
@@ -285,7 +329,13 @@ func assertAuthorizationCodeRequests(t *testing.T, provider *authorizationProvid
 	assertEqual(t, authRequest.ClientID, expectedClientID, "authorization client_id")
 	assertEqual(t, authRequest.RedirectURI, callbackURI, "authorization redirect_uri")
 	assertEqual(t, authRequest.Scope, "openid profile", "authorization scope")
-	assertEqual(t, authRequest.State, expectedAuthorizationState, "authorization state")
+	if wantState == "" {
+		if len(authRequest.State) < 8 {
+			t.Errorf("authorization state: got %q, want a generated value of at least 8 characters", authRequest.State)
+		}
+	} else {
+		assertEqual(t, authRequest.State, wantState, "authorization state")
+	}
 	assertEqual(t, authRequest.CodeChallengeMethod, "S256", "authorization code_challenge_method")
 
 	if expectTokenRequest {

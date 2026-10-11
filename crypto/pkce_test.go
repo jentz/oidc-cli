@@ -35,3 +35,29 @@ func TestGeneratePKCECodeChallenge(t *testing.T) {
 		t.Errorf("challenge is not valid base64url: %v", err)
 	}
 }
+
+func TestGenerateState(t *testing.T) {
+	t.Parallel()
+	state, err := GenerateState()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// 32 bytes base64url-encoded is 43 chars (without padding)
+	if len(state) != 43 {
+		t.Errorf("expected state length 43, got %d", len(state))
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(state)
+	if err != nil {
+		t.Errorf("state is not valid base64url: %v", err)
+	}
+	if len(decoded) != 32 {
+		t.Errorf("expected 32 random bytes, got %d", len(decoded))
+	}
+	other, err := GenerateState()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state == other {
+		t.Errorf("expected a new state per call, got %q twice", state)
+	}
+}
