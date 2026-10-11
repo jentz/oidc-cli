@@ -23,6 +23,8 @@ type AuthorizationCodeFlowConfig struct {
 	MaxAge      string
 	UILocales   string
 	State       string
+	Nonce       string
+	NoNonce     bool
 	CustomArgs  *httpclient.CustomArgs
 	PKCE        bool
 	PAR         bool
@@ -45,8 +47,32 @@ func (c *AuthorizationCodeFlowConfig) resolveState() (string, error) {
 	return crypto.GenerateState()
 }
 
+// resolveNonce returns the nonce to send and check for this run: a custom
+// nonce arg wins, then --no-nonce, then the configured nonce, then a new
+// random value. The generated value is not written back to the flow
+// configuration. An empty result means no nonce check; the custom arg, when
+// present, still sends its empty value.
+func (c *AuthorizationCodeFlowConfig) resolveNonce() (string, error) {
+	if c.CustomArgs != nil {
+		if nonce, ok := (*c.CustomArgs)["nonce"]; ok {
+			return nonce, nil
+		}
+	}
+	if c.NoNonce {
+		return "", nil
+	}
+	if c.Nonce != "" {
+		return c.Nonce, nil
+	}
+	return crypto.GenerateNonce()
+}
+
 func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeVerifier string) (*httpclient.AuthorizationCodeRequest, error) {
 	state, err := c.FlowConfig.resolveState()
+	if err != nil {
+		return nil, err
+	}
+	nonce, err := c.FlowConfig.resolveNonce()
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +86,7 @@ func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeV
 		MaxAge:      c.FlowConfig.MaxAge,
 		UILocales:   c.FlowConfig.UILocales,
 		State:       state,
+		Nonce:       nonce,
 		CustomArgs:  c.FlowConfig.CustomArgs,
 	}
 	// If the user has not explicitly set a redirect URI, use the callback URI
@@ -150,5 +177,10 @@ func (c *AuthorizationCodeFlow) Run(ctx context.Context) error {
 		return err
 	}
 
-	return c.Config.Runtime.Logger.OutputJSON(tokenData)
+	// Print the token data before the nonce check, so a failed check still
+	// shows the authorization server's real response.
+	if err := c.Config.Runtime.Logger.OutputJSON(tokenData); err != nil {
+		return err
+	}
+	return checkIDTokenNonce(tokenData, authCodeReq.Nonce)
 }

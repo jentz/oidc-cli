@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -25,6 +26,8 @@ const (
 	expectedAuthorizationCode  = "acceptance-auth-code"
 	expectedAuthorizationState = "acceptance-state"
 	forgedAuthorizationState   = "forged-state"
+	expectedAuthorizationNonce = "acceptance-nonce"
+	forgedIDTokenNonce         = "forged-nonce"
 )
 
 type authorizationRequest struct {
@@ -34,6 +37,8 @@ type authorizationRequest struct {
 	RedirectURI         string
 	Scope               string
 	State               string
+	Nonce               string
+	HasNonce            bool
 	CodeChallengeMethod string
 	CodeChallenge       string
 }
@@ -56,6 +61,9 @@ type authorizationProvider struct {
 	server *httptest.Server
 
 	outcome callbackOutcome
+	// forgeIDTokenNonce makes the token endpoint return an ID Token whose
+	// nonce claim the client never sent, as a replayed ID Token would carry.
+	forgeIDTokenNonce bool
 
 	mu                    sync.Mutex
 	discoveryRequests     int
@@ -63,10 +71,20 @@ type authorizationProvider struct {
 	tokenRequests         []tokenRequest
 }
 
-func newAuthorizationProvider(t *testing.T, outcome callbackOutcome) *authorizationProvider {
+// providerOption configures the fake provider before it starts serving.
+type providerOption func(*authorizationProvider)
+
+func withForgedIDTokenNonce() providerOption {
+	return func(p *authorizationProvider) { p.forgeIDTokenNonce = true }
+}
+
+func newAuthorizationProvider(t *testing.T, outcome callbackOutcome, opts ...providerOption) *authorizationProvider {
 	t.Helper()
 
 	provider := &authorizationProvider{outcome: outcome}
+	for _, opt := range opts {
+		opt(provider)
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/.well-known/openid-configuration", provider.handleDiscovery)
 	mux.HandleFunc("/authorize", provider.handleAuthorization)
@@ -130,6 +148,8 @@ func (p *authorizationProvider) handleAuthorization(w http.ResponseWriter, r *ht
 		RedirectURI:         query.Get("redirect_uri"),
 		Scope:               query.Get("scope"),
 		State:               query.Get("state"),
+		Nonce:               query.Get("nonce"),
+		HasNonce:            query.Has("nonce"),
 		CodeChallengeMethod: query.Get("code_challenge_method"),
 		CodeChallenge:       query.Get("code_challenge"),
 	}
@@ -191,6 +211,10 @@ func (p *authorizationProvider) handleToken(w http.ResponseWriter, r *http.Reque
 
 	p.mu.Lock()
 	p.tokenRequests = append(p.tokenRequests, request)
+	var authRequest authorizationRequest
+	if n := len(p.authorizationRequests); n > 0 {
+		authRequest = p.authorizationRequests[n-1]
+	}
 	p.mu.Unlock()
 
 	if request.GrantType != "authorization_code" || request.Code != expectedAuthorizationCode || request.ClientID != expectedClientID || request.ClientSecret != expectedClientSecret {
@@ -207,7 +231,31 @@ func (p *authorizationProvider) handleToken(w http.ResponseWriter, r *http.Reque
 		"token_type":    "Bearer",
 		"expires_in":    3600,
 		"scope":         "openid profile",
+		"id_token":      p.idToken(authRequest),
 	})
+}
+
+// idToken returns an unsigned ID Token for the authorization request. Like a
+// real provider, it echoes the request's nonce and omits the claim when the
+// request had none.
+func (p *authorizationProvider) idToken(authRequest authorizationRequest) string {
+	claims := map[string]any{
+		"iss": p.server.URL,
+		"sub": "acceptance-user",
+		"aud": expectedClientID,
+	}
+	switch {
+	case p.forgeIDTokenNonce:
+		claims["nonce"] = forgedIDTokenNonce
+	case authRequest.HasNonce:
+		claims["nonce"] = authRequest.Nonce
+	}
+	payload, err := json.Marshal(claims)
+	if err != nil {
+		panic(err)
+	}
+	enc := base64.RawURLEncoding.EncodeToString
+	return enc([]byte(`{"alg":"none","typ":"JWT"}`)) + "." + enc(payload) + "." + enc([]byte("signature"))
 }
 
 // TestAuthorizationCodeFlowSuccess also covers --state: the given value is
@@ -262,6 +310,85 @@ func TestAuthorizationCodeFlowForgedState(t *testing.T) {
 	assertContains(t, result.Stderr, "state mismatch", "stderr")
 
 	assertAuthorizationCodeRequests(t, provider, callbackURI, "", false)
+}
+
+func TestAuthorizationCodeFlowNonce(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      []string
+		wantSent  bool
+		wantNonce string // empty with wantSent means a generated value
+	}{
+		{name: "generated", wantSent: true},
+		{name: "--nonce", args: []string{"--nonce", expectedAuthorizationNonce}, wantSent: true, wantNonce: expectedAuthorizationNonce},
+		{name: "--no-nonce", args: []string{"--no-nonce"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := newAuthorizationProvider(t, callbackCode)
+			callbackURI := reserveLoopbackCallbackURI(t)
+
+			result := runAuthorizationCodeFlow(t, provider, callbackURI, tt.args...)
+
+			if result.ExitCode != 0 {
+				t.Fatalf("expected exit code 0, got %d\nstderr:\n%s\nstdout:\n%s", result.ExitCode, result.Stderr, result.Stdout)
+			}
+			token := result.JSON(t)
+			assertEqual(t, token["access_token"], "acceptance-authorization-code-token", "access_token")
+			if _, ok := token["id_token"]; !ok {
+				t.Errorf("stdout has no id_token: %s", result.Stdout)
+			}
+
+			_, authorizationRequests, _ := provider.requests()
+			if len(authorizationRequests) != 1 {
+				t.Fatalf("expected 1 authorization request, got %d", len(authorizationRequests))
+			}
+			authRequest := authorizationRequests[0]
+			switch {
+			case !tt.wantSent:
+				if authRequest.HasNonce {
+					t.Errorf("authorization nonce: got %q, want no nonce parameter", authRequest.Nonce)
+				}
+			case tt.wantNonce != "":
+				assertEqual(t, authRequest.Nonce, tt.wantNonce, "authorization nonce")
+			case len(authRequest.Nonce) < 8:
+				t.Errorf("authorization nonce: got %q, want a generated value of at least 8 characters", authRequest.Nonce)
+			}
+		})
+	}
+}
+
+// TestAuthorizationCodeFlowForgedNonce proves that the sent nonce is checked,
+// whether generated or set with --nonce. A failed check still prints the token
+// data, so the user sees the provider's real response, and the exit code
+// reports the failure.
+func TestAuthorizationCodeFlowForgedNonce(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "generated"},
+		{name: "--nonce", args: []string{"--nonce", expectedAuthorizationNonce}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := newAuthorizationProvider(t, callbackCode, withForgedIDTokenNonce())
+			callbackURI := reserveLoopbackCallbackURI(t)
+
+			result := runAuthorizationCodeFlow(t, provider, callbackURI, tt.args...)
+
+			if result.ExitCode == 0 {
+				t.Fatalf("expected non-zero exit code\nstdout:\n%s\nstderr:\n%s", result.Stdout, result.Stderr)
+			}
+			token := result.JSON(t)
+			assertEqual(t, token["access_token"], "acceptance-authorization-code-token", "access_token")
+			assertContains(t, result.Stderr, "nonce mismatch", "stderr")
+			assertContains(t, result.Stderr, forgedIDTokenNonce, "stderr")
+			assertNotContains(t, result.Stderr, expectedClientSecret, "stderr")
+
+			assertAuthorizationCodeRequests(t, provider, callbackURI, "", true)
+		})
+	}
 }
 
 func TestAuthorizationCodeFlowCallbackError(t *testing.T) {

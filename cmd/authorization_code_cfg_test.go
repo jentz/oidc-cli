@@ -36,6 +36,7 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				"--max-age", "max_age",
 				"--ui-locales", "ui_locales",
 				"--state", "state",
+				"--nonce", "nonce",
 				"--custom", "custom1=value1",
 				"--custom", "custom2=value2",
 				"--pkce",
@@ -67,6 +68,7 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				MaxAge:      "max_age",
 				UILocales:   "ui_locales",
 				State:       "state",
+				Nonce:       "nonce",
 				CustomArgs: &httpclient.CustomArgs{
 					"custom1": "value1",
 					"custom2": "value2",
@@ -101,6 +103,27 @@ func TestParseAuthorizationCodeFlagsResult(t *testing.T) {
 				PKCE:        false,
 				PAR:         false,
 				DPoP:        false,
+			},
+		},
+		{
+			"no nonce",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--client-secret", "client-secret",
+				"--no-nonce",
+			},
+			oidc.Config{
+				OIDC: oidc.OIDCConfig{
+					IssuerURL:    "https://example.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+			oidc.AuthorizationCodeFlowConfig{
+				Scope:       "openid",
+				CallbackURI: "http://localhost:9555/callback",
+				NoNonce:     true,
 			},
 		},
 		{
@@ -323,16 +346,23 @@ func TestParseAuthorizationCodeFlagsRejectsSkipTLSVerify(t *testing.T) {
 	}
 }
 
-// The --state help must say that every run sends a state, so users know they
-// need not generate one themselves.
-func TestParseAuthorizationCodeFlagsStateHelp(t *testing.T) {
+// The --state and --nonce help must say that every run sends a random value,
+// so users know they need not generate one themselves. The --no-nonce help
+// must say that it also skips the check.
+func TestParseAuthorizationCodeFlagsStateAndNonceHelp(t *testing.T) {
 	t.Parallel()
 	_, output, err := parseAuthorizationCodeFlags(ParseInput{Name: "authorization_code", Args: []string{"--help"}, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
 	if !errors.Is(err, flag.ErrHelp) {
 		t.Fatalf("err got %v, want flag.ErrHelp", err)
 	}
-	if want := "set state parameter (default: random value per run)"; !strings.Contains(output, want) {
-		t.Errorf("help output does not contain %q:\n%s", want, output)
+	for _, want := range []string{
+		"set state parameter (default: random value per run)",
+		"set nonce parameter (default: random value per run)",
+		"send no nonce parameter and skip the ID Token nonce check",
+	} {
+		if !strings.Contains(output, want) {
+			t.Errorf("help output does not contain %q:\n%s", want, output)
+		}
 	}
 }
 
@@ -380,6 +410,16 @@ func TestParseAuthorizationCodeFlagsError(t *testing.T) {
 				"--callback-uri", "http://localhost:8080/callback",
 				"--dpop",
 				"--dpop-private-key", "path/to/private-key.pem",
+			},
+		},
+		{
+			"both nonce and no-nonce",
+			[]string{
+				"--issuer", "https://example.com",
+				"--client-id", "client-id",
+				"--client-secret", "client-secret",
+				"--nonce", "nonce",
+				"--no-nonce",
 			},
 		},
 	}

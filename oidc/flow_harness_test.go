@@ -21,6 +21,8 @@ import (
 // Tests assert only on what crosses the Run seam — the HTTP requests emitted
 // (method, URL, headers, form body) and the bytes written to output — never on
 // config internals or unexported helpers, so they survive config refactors.
+// One exception: a flow that generates a value per run (state, nonce) is
+// checked to leave the user's configuration unchanged.
 
 const (
 	testClientID              = "test-client"
@@ -74,7 +76,9 @@ type fixtureSettings struct {
 	// routes overrides the default response per request URL, letting an
 	// interactive flow return a request_uri from the PAR endpoint and a token
 	// from the token endpoint within one Run.
-	routes    map[string]cannedResponse
+	// Each route builds its response when the request is made, so a body
+	// can depend on values the flow chose during Run.
+	routes    map[string]func() cannedResponse
 	browser   webflow.Browser
 	noBrowser bool
 	listen    func(network, addr string) (net.Listener, error)
@@ -85,11 +89,19 @@ type fixtureOption func(*fixtureSettings)
 // withRoute sets the canned response the transport returns for a specific
 // request URL, overriding the default for that endpoint only.
 func withRoute(rawURL string, status int, body string) fixtureOption {
+	return withRouteFunc(rawURL, func() cannedResponse {
+		return cannedResponse{status: status, body: body}
+	})
+}
+
+// withRouteFunc sets a function that builds the response for a specific
+// request URL when the request is made.
+func withRouteFunc(rawURL string, fn func() cannedResponse) fixtureOption {
 	return func(s *fixtureSettings) {
 		if s.routes == nil {
-			s.routes = make(map[string]cannedResponse)
+			s.routes = make(map[string]func() cannedResponse)
 		}
-		s.routes[rawURL] = cannedResponse{status: status, body: body}
+		s.routes[rawURL] = fn
 	}
 }
 
@@ -163,7 +175,8 @@ func newReadyConfig(t *testing.T, opts ...fixtureOption) *flowFixture {
 	transport := mockTransport(func(req *http.Request) (*http.Response, error) {
 		fixture.requests = append(fixture.requests, captureRequest(t, req))
 		status, body := settings.responseStatus, settings.responseBody
-		if route, ok := settings.routes[req.URL.String()]; ok {
+		if fn, ok := settings.routes[req.URL.String()]; ok {
+			route := fn()
 			status, body = route.status, route.body
 		}
 		return &http.Response{
