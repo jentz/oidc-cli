@@ -342,6 +342,12 @@ func TestValidateCallbackResponse(t *testing.T) {
 			wantErr:  `state mismatch: expected "test-state-123" but got "different-state-456"`,
 		},
 		{
+			name:     "missing state with a code is rejected",
+			reqState: "test-state-123",
+			resp:     &webflow.CallbackResponse{Code: "auth-code-123"},
+			wantErr:  `state mismatch: expected "test-state-123" but got ""`,
+		},
+		{
 			name:      "empty request state accepts any callback state and returns empty",
 			reqState:  "",
 			resp:      &webflow.CallbackResponse{Code: "auth-code-123", State: "any-state"},
@@ -357,6 +363,25 @@ func TestValidateCallbackResponse(t *testing.T) {
 				ErrorDescription: "User denied access",
 			},
 			wantErr: "authorization failed with error access_denied and description User denied access",
+		},
+		{
+			name:     "missing code reports the authorization error when state is missing",
+			reqState: "test-state-123",
+			resp: &webflow.CallbackResponse{
+				ErrorMsg:         "access_denied",
+				ErrorDescription: "User denied access",
+			},
+			wantErr: "authorization failed with error access_denied and description User denied access",
+		},
+		{
+			name:     "missing code reports the authorization error when state mismatches",
+			reqState: "test-state-123",
+			resp: &webflow.CallbackResponse{
+				State:            "different-state-456",
+				ErrorMsg:         "invalid_scope",
+				ErrorDescription: "Unknown scope",
+			},
+			wantErr: "authorization failed with error invalid_scope and description Unknown scope",
 		},
 	}
 

@@ -200,8 +200,8 @@ func buildAuthorizationURL(endpoint string, req *AuthorizationCodeRequest) (stri
 	return requestURL, nil
 }
 
-// validateCallbackResponse checks the redirect's state (CSRF defense) and that
-// an authorization code is present.
+// validateCallbackResponse checks that an authorization code is present and
+// that the redirect's state matches (CSRF defense).
 func validateCallbackResponse(req *AuthorizationCodeRequest, resp *webflow.CallbackResponse) (*AuthorizationCodeResponse, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
@@ -210,13 +210,16 @@ func validateCallbackResponse(req *AuthorizationCodeRequest, resp *webflow.Callb
 		return nil, errors.New("response cannot be nil")
 	}
 
+	// Report the authorization server error first: error redirects often omit
+	// state, and a callback without a code cannot yield a token, so CSRF is not
+	// at stake.
+	if resp.Code == "" {
+		return nil, fmt.Errorf("authorization failed with error %s and description %s", resp.ErrorMsg, resp.ErrorDescription)
+	}
+
 	// Reject a mismatched state to prevent CSRF.
 	if req.State != "" && resp.State != req.State {
 		return nil, fmt.Errorf("state mismatch: expected %q but got %q", req.State, resp.State)
-	}
-
-	if resp.Code == "" {
-		return nil, fmt.Errorf("authorization failed with error %s and description %s", resp.ErrorMsg, resp.ErrorDescription)
 	}
 
 	return &AuthorizationCodeResponse{

@@ -37,10 +37,21 @@ type authorizationRequest struct {
 	CodeChallenge       string
 }
 
+// callbackOutcome selects what the fake provider sends to the callback.
+type callbackOutcome int
+
+const (
+	callbackCode callbackOutcome = iota
+	callbackError
+	// callbackErrorWithoutState models providers that omit state on an error
+	// redirect.
+	callbackErrorWithoutState
+)
+
 type authorizationProvider struct {
 	server *httptest.Server
 
-	redirectError bool
+	outcome callbackOutcome
 
 	mu                    sync.Mutex
 	discoveryRequests     int
@@ -48,10 +59,10 @@ type authorizationProvider struct {
 	tokenRequests         []tokenRequest
 }
 
-func newAuthorizationProvider(t *testing.T, redirectError bool) *authorizationProvider {
+func newAuthorizationProvider(t *testing.T, outcome callbackOutcome) *authorizationProvider {
 	t.Helper()
 
-	provider := &authorizationProvider{redirectError: redirectError}
+	provider := &authorizationProvider{outcome: outcome}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/.well-known/openid-configuration", provider.handleDiscovery)
 	mux.HandleFunc("/authorize", provider.handleAuthorization)
@@ -131,12 +142,14 @@ func (p *authorizationProvider) handleAuthorization(w http.ResponseWriter, r *ht
 		return
 	}
 	redirectQuery := redirectURL.Query()
-	redirectQuery.Set("state", request.State)
-	if p.redirectError {
+	if p.outcome != callbackErrorWithoutState {
+		redirectQuery.Set("state", request.State)
+	}
+	if p.outcome == callbackCode {
+		redirectQuery.Set("code", expectedAuthorizationCode)
+	} else {
 		redirectQuery.Set("error", "access_denied")
 		redirectQuery.Set("error_description", "user denied authorization")
-	} else {
-		redirectQuery.Set("code", expectedAuthorizationCode)
 	}
 	redirectURL.RawQuery = redirectQuery.Encode()
 
@@ -186,7 +199,7 @@ func (p *authorizationProvider) handleToken(w http.ResponseWriter, r *http.Reque
 }
 
 func TestAuthorizationCodeFlowSuccess(t *testing.T) {
-	provider := newAuthorizationProvider(t, false)
+	provider := newAuthorizationProvider(t, callbackCode)
 	callbackURI := reserveLoopbackCallbackURI(t)
 
 	result := runAuthorizationCodeFlow(t, provider, callbackURI)
@@ -208,22 +221,35 @@ func TestAuthorizationCodeFlowSuccess(t *testing.T) {
 }
 
 func TestAuthorizationCodeFlowCallbackError(t *testing.T) {
-	provider := newAuthorizationProvider(t, true)
-	callbackURI := reserveLoopbackCallbackURI(t)
-
-	result := runAuthorizationCodeFlow(t, provider, callbackURI)
-
-	if result.ExitCode == 0 {
-		t.Fatalf("expected non-zero exit code\nstdout:\n%s\nstderr:\n%s", result.Stdout, result.Stderr)
+	tests := []struct {
+		name    string
+		outcome callbackOutcome
+	}{
+		{name: "with state", outcome: callbackError},
+		// The provider error must not be hidden behind a state mismatch.
+		{name: "without state", outcome: callbackErrorWithoutState},
 	}
-	assertEqual(t, result.Stdout, "", "stdout")
-	assertContains(t, result.Stderr, "authorization request failed", "stderr")
-	assertContains(t, result.Stderr, "access_denied", "stderr")
-	assertContains(t, result.Stderr, "user denied authorization", "stderr")
-	assertNotContains(t, result.Stderr, expectedClientSecret, "stderr")
-	assertNotContains(t, result.Stdout, expectedClientSecret, "stdout")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := newAuthorizationProvider(t, tt.outcome)
+			callbackURI := reserveLoopbackCallbackURI(t)
 
-	assertAuthorizationCodeRequests(t, provider, callbackURI, false)
+			result := runAuthorizationCodeFlow(t, provider, callbackURI)
+
+			if result.ExitCode == 0 {
+				t.Fatalf("expected non-zero exit code\nstdout:\n%s\nstderr:\n%s", result.Stdout, result.Stderr)
+			}
+			assertEqual(t, result.Stdout, "", "stdout")
+			assertContains(t, result.Stderr, "authorization request failed", "stderr")
+			assertContains(t, result.Stderr, "access_denied", "stderr")
+			assertContains(t, result.Stderr, "user denied authorization", "stderr")
+			assertNotContains(t, result.Stderr, "state mismatch", "stderr")
+			assertNotContains(t, result.Stderr, expectedClientSecret, "stderr")
+			assertNotContains(t, result.Stdout, expectedClientSecret, "stdout")
+
+			assertAuthorizationCodeRequests(t, provider, callbackURI, false)
+		})
+	}
 }
 
 func runAuthorizationCodeFlow(t *testing.T, provider *authorizationProvider, callbackURI string) Result {
