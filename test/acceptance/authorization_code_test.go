@@ -68,7 +68,9 @@ func newAuthorizationProvider(t *testing.T, outcome callbackOutcome) *authorizat
 	mux.HandleFunc("/authorize", provider.handleAuthorization)
 	mux.HandleFunc("/token", provider.handleToken)
 
-	provider.server = httptest.NewServer(mux)
+	// Start only after the field is set: handlers read provider.server.
+	provider.server = httptest.NewUnstartedServer(mux)
+	provider.server.Start()
 	t.Cleanup(provider.server.Close)
 
 	return provider
@@ -315,33 +317,31 @@ func runAndFollowAuthorizationURL(t *testing.T, args ...string) Result {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, bin, args...) // #nosec G204 -- acceptance tests intentionally execute the configured oidc-cli binary.
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatalf("stdout pipe: %v", err)
-	}
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		t.Fatalf("stderr pipe: %v", err)
-	}
 
+	// Give exec non-file writers rather than StdoutPipe/StderrPipe: exec then
+	// copies the output itself and Wait returns only once every byte is
+	// copied. With the *Pipe methods, Wait closes the read ends and races any
+	// reader still draining them.
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	stdoutDone := make(chan error, 1)
+	cmd.Stdout = &stdout
+	stderrReader, stderrWriter := io.Pipe()
+	cmd.Stderr = stderrWriter
+
 	stderrDone := make(chan error, 1)
 	authorizationURL := make(chan string, 1)
-
-	go func() {
-		_, err := io.Copy(&stdout, stdoutPipe)
-		stdoutDone <- err
-	}()
-	go scanStderrForAuthorizationURL(stderrPipe, &stderr, authorizationURL, stderrDone)
+	go scanStderrForAuthorizationURL(stderrReader, &stderr, authorizationURL, stderrDone)
 
 	if err := cmd.Start(); err != nil {
+		_ = stderrWriter.Close()
 		t.Fatalf("start oidc-cli: %v", err)
 	}
 	waitDone := make(chan error, 1)
 	go func() {
-		waitDone <- cmd.Wait()
+		err := cmd.Wait()
+		// All stderr is copied once Wait returns; end the scanner's input.
+		_ = stderrWriter.Close()
+		waitDone <- err
 	}()
 
 	var waitErr error
@@ -365,9 +365,6 @@ func runAndFollowAuthorizationURL(t *testing.T, args ...string) Result {
 		waitErr = <-waitDone
 	}
 
-	if copyErr := <-stdoutDone; copyErr != nil {
-		t.Fatalf("copy stdout: %v", copyErr)
-	}
 	if copyErr := <-stderrDone; copyErr != nil {
 		t.Fatalf("copy stderr: %v", copyErr)
 	}

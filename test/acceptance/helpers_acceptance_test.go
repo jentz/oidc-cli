@@ -64,7 +64,9 @@ func newTokenProvider(t *testing.T, behavior tokenEndpointBehavior) *tokenProvid
 	mux.HandleFunc("/.well-known/openid-configuration", provider.handleDiscovery)
 	mux.HandleFunc("/token", provider.handleToken)
 
-	provider.server = httptest.NewServer(mux)
+	// Start only after the field is set: handlers read provider.server.
+	provider.server = httptest.NewUnstartedServer(mux)
+	provider.server.Start()
 	t.Cleanup(provider.server.Close)
 
 	return provider
