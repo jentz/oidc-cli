@@ -48,7 +48,9 @@ func newDeviceProvider(t *testing.T, pollResponses []deviceTokenResponse) *devic
 	mux.HandleFunc("/device_authorization", provider.handleDeviceAuthorization)
 	mux.HandleFunc("/token", provider.handleToken)
 
-	provider.server = httptest.NewServer(mux)
+	// Start only after the field is set: handlers read provider.server.
+	provider.server = httptest.NewUnstartedServer(mux)
+	provider.server.Start()
 	t.Cleanup(provider.server.Close)
 
 	return provider

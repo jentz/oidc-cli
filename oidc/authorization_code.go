@@ -29,7 +29,27 @@ type AuthorizationCodeFlowConfig struct {
 	DPoP        bool
 }
 
+// resolveState returns the state to send and check for this run: a custom
+// state arg wins, then the configured state, then a new random value. The
+// generated value is not written back to the flow configuration. An empty
+// custom state is sent as given, which turns off the callback state check.
+func (c *AuthorizationCodeFlowConfig) resolveState() (string, error) {
+	if c.CustomArgs != nil {
+		if state, ok := (*c.CustomArgs)["state"]; ok {
+			return state, nil
+		}
+	}
+	if c.State != "" {
+		return c.State, nil
+	}
+	return crypto.GenerateState()
+}
+
 func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeVerifier string) (*httpclient.AuthorizationCodeRequest, error) {
+	state, err := c.FlowConfig.resolveState()
+	if err != nil {
+		return nil, err
+	}
 	req := &httpclient.AuthorizationCodeRequest{
 		ClientID:    c.Config.OIDC.ClientID,
 		Scope:       c.FlowConfig.Scope,
@@ -39,7 +59,7 @@ func (c *AuthorizationCodeFlow) createAuthCodeRequest(ctx context.Context, codeV
 		LoginHint:   c.FlowConfig.LoginHint,
 		MaxAge:      c.FlowConfig.MaxAge,
 		UILocales:   c.FlowConfig.UILocales,
-		State:       c.FlowConfig.State,
+		State:       state,
 		CustomArgs:  c.FlowConfig.CustomArgs,
 	}
 	// If the user has not explicitly set a redirect URI, use the callback URI

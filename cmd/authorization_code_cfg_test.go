@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"flag"
 	"reflect"
 	"strings"
 	"testing"
@@ -318,6 +320,19 @@ func TestParseAuthorizationCodeFlagsRejectsSkipTLSVerify(t *testing.T) {
 	}
 	if output == "" {
 		t.Error("output got empty, want usage text on parse failure")
+	}
+}
+
+// The --state help must say that every run sends a state, so users know they
+// need not generate one themselves.
+func TestParseAuthorizationCodeFlagsStateHelp(t *testing.T) {
+	t.Parallel()
+	_, output, err := parseAuthorizationCodeFlags(ParseInput{Name: "authorization_code", Args: []string{"--help"}, Conf: &oidc.Config{}, Stdin: strings.NewReader("")})
+	if !errors.Is(err, flag.ErrHelp) {
+		t.Fatalf("err got %v, want flag.ErrHelp", err)
+	}
+	if want := "set state parameter (default: random value per run)"; !strings.Contains(output, want) {
+		t.Errorf("help output does not contain %q:\n%s", want, output)
 	}
 }
 

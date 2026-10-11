@@ -43,7 +43,9 @@ func newIntrospectionProvider(t *testing.T) *introspectionProvider {
 	mux.HandleFunc("/.well-known/openid-configuration", provider.handleDiscovery)
 	mux.HandleFunc("/introspect", provider.handleIntrospection)
 
-	provider.server = httptest.NewServer(mux)
+	// Start only after the field is set: handlers read provider.server.
+	provider.server = httptest.NewUnstartedServer(mux)
+	provider.server.Start()
 	t.Cleanup(provider.server.Close)
 
 	return provider
