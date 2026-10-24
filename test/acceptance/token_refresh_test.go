@@ -108,3 +108,29 @@ func TestTokenRefreshTokenError(t *testing.T) {
 	assertEqual(t, requests[0].ClientSecret, expectedClientSecret, "client_secret")
 	assertEqual(t, requests[0].RefreshToken, wrongRefreshToken, "refresh_token")
 }
+
+func TestTokenRefreshTokenURLOverride(t *testing.T) {
+	discoveryProvider := newTokenRefreshProvider(t)
+	overrideProvider := newTokenRefreshProvider(t)
+
+	result := Run(t,
+		"token_refresh",
+		"--issuer", discoveryProvider.issuer(),
+		"--token-url", overrideProvider.issuer()+"/token",
+		"--client-id", expectedClientID,
+		"--client-secret", expectedClientSecret,
+		"--auth-method", "client_secret_post",
+		"--refresh-token", expectedRefreshToken,
+	)
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d\nstderr:\n%s\nstdout:\n%s", result.ExitCode, result.Stderr, result.Stdout)
+	}
+
+	discoveryRequests, discoveryTokenRequests := discoveryProvider.requests()
+	assertEqual(t, discoveryRequests, 1, "discovery request count")
+	assertEqual(t, len(discoveryTokenRequests), 0, "token requests to discovered endpoint")
+
+	_, overrideTokenRequests := overrideProvider.requests()
+	assertEqual(t, len(overrideTokenRequests), 1, "token requests to --token-url")
+}
