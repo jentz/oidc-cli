@@ -8,7 +8,7 @@ This file provides guidance to GitHub Copilot when working with code in this rep
 - **Language:** Go
 - **Type:** CLI application implementing an OIDC (OpenID Connect) client
 - **Key Features:**
-  - Supports Authorization Code, Client Credentials, Token Refresh, and Token Introspection flows
+  - Supports Authorization Code, Client Credentials, Device, Token Refresh, Token Exchange, and Token Introspection flows
   - Modular architecture with clear package separation
   - Command pattern for CLI commands
 
@@ -20,6 +20,7 @@ This file provides guidance to GitHub Copilot when working with code in this rep
 - `crypto/`: Cryptographic utilities (PKCE, DPoP, PEM)
 - `webflow/`: Browser-based authorization flow and callback server
 - `log/`: Logging utilities
+- `test/acceptance/`: CLI acceptance tests that run the compiled binary against local fake providers
 
 ## Development Best Practices
 - Use idiomatic Go and follow effective Go guidelines
@@ -31,6 +32,7 @@ This file provides guidance to GitHub Copilot when working with code in this rep
 ## Testing
 - Use Go's standard testing framework
 - Run all tests with `go test ./...`
+- Run the CLI acceptance tests with `make acceptance` (they need the `acceptance` build tag and a built binary)
 - Use table-driven tests for coverage and clarity
 - Mock external dependencies where possible
 

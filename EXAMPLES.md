@@ -24,14 +24,16 @@ oidc-cli --client-id <client> --client-secret $(bw get password "client")
 
 ### Provide endpoint URIs
 
-It is mandatory to inform the `oidc-cli` about the endpoints of your authorization server. You can provide the `--issuer` argument and let the `oidc-cli` discover endpoints using the standard OIDC discovery document. If your authorization does not provide such a discovery document or it is provided in a non-standard location, it may be desired to override the endpoints explicitly using the appropriate arguments (e.g. ```--discovery-url```, ```--token-url```, ```--authorization-url``` and ```--introspection-url```).
+The `--issuer` argument is required by all commands. `oidc-cli` always fetches the OIDC discovery document to find the endpoints of your authorization server. By default, it reads the document from `<issuer>/.well-known/openid-configuration` and checks that the `issuer` in the document matches `--issuer`.
+
+If your authorization server publishes the discovery document in a non-standard location, use `--discovery-url`. With `--discovery-url`, `oidc-cli` does not check the `issuer` in the document. To override a single endpoint from the discovery document, use the appropriate argument (e.g. `--authorization-url`, `--token-url`, `--device-authorization-url` and `--introspection-url`).
 
 ### Add common arguments using aliases
 
 If you often execute `oidc-cli` toward the same authorization server and using the same client id, we would recommend creating aliases. E.g.
 
 ```sh
-alias oidc-cli="oidc-cli --issuer <issuer> --client-id <client id>
+alias oidc-cli="oidc-cli --issuer <issuer> --client-id <client id>"
 ```
 
 ### Run browser-based flows without launching a browser
@@ -97,8 +99,10 @@ In many cases, it may be preferable to read the token from stdin. This can be ac
 This method can be used to obtain a new token with a refresh token.
 
 ```sh
-oidc-cli token_refresh --refresh_token <refresh_token>
+oidc-cli token_refresh --refresh-token <refresh_token>
 ```
+
+To read the refresh token from stdin, provide `-` as the value for the `--refresh-token` argument.
 
 ## Obtain a token and keep refreshing
 
@@ -110,13 +114,13 @@ token=$(oidc-cli authorization_code | jq -r .refresh_token);
 while true; do
     echo "token: ${token}"
     sleep 10;
-    token=$(oidc-cli token_refresh --refresh_token ${token} | jq -r .refresh_token);
+    token=$(oidc-cli token_refresh --refresh-token ${token} | jq -r .refresh_token);
 done
 ```
 
 ## Print out the decoded JWT token
 
-Decoding the JWT requires an additional tool to be installed. `jwt-decode` is such a tool. If this tool is available for you, you can extract and print the decoded JWT by piping the JSON output through `jq` into `jwt-decode`.
+Decoding the JWT requires an additional tool to be installed. [`jwt-cli`](https://github.com/mike-engel/jwt-cli) is such a tool. It provides the `jwt` command. If this tool is available for you, you can extract and print the decoded JWT by piping the JSON output through `jq` into `jwt decode`.
 
 ```sh
 oidc-cli authorization_code | jq -r .access_token | jwt decode -
@@ -126,5 +130,5 @@ oidc-cli authorization_code | jq -r .access_token | jwt decode -
 
 Use the following commands to fetch an access token and pipe it to another instance of the `oidc-cli` to introspect the token. This is particularly useful if a client is configured such that it receives opaque access tokens and you're interested in seeing the associated claims.
 ```sh
-oidc-cli autorization_code | jq -r .access_token | oidc-cli introspect --token -
+oidc-cli authorization_code | jq -r .access_token | oidc-cli introspect --token -
 ```
