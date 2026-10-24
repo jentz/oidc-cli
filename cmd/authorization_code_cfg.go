@@ -32,7 +32,7 @@ func parseAuthorizationCodeFlags(in ParseInput) (runner CommandRunner, output st
 	flags.StringVar(&oidcConf.OIDC.TokenEndpoint, "token-url", "", "override token url")
 	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
 	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required if not using PKCE)")
-	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic, client_secret_post, or none)")
 	flags.StringVar(&oidcConf.DPoPKeys.PrivateKeyFile, "dpop-private-key", "", "file to read private key from (eg. for DPoP)")
 	flags.StringVar(&oidcConf.DPoPKeys.PublicKeyFile, "dpop-public-key", "", "file to read public key from (eg. for DPoP)")
 

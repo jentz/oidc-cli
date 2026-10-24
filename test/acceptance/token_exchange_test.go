@@ -123,3 +123,34 @@ func TestTokenExchangeTokenError(t *testing.T) {
 	assertEqual(t, requests[0].SubjectToken, wrongSubjectToken, "subject_token")
 	assertEqual(t, requests[0].SubjectTokenType, expectedSubjectTokenType, "subject_token_type")
 }
+
+func TestTokenExchangeTokenURLOverride(t *testing.T) {
+	discoveryProvider := newTokenExchangeProvider(t)
+	overrideProvider := newTokenExchangeProvider(t)
+
+	result := Run(t,
+		"token_exchange",
+		"--issuer", discoveryProvider.issuer(),
+		"--token-url", overrideProvider.issuer()+"/token",
+		"--client-id", expectedClientID,
+		"--client-secret", expectedClientSecret,
+		"--auth-method", "client_secret_post",
+		"--subject-token", expectedSubjectToken,
+		"--subject-token-type", expectedSubjectTokenType,
+		"--audience", "acceptance-api",
+		"--resource", "https://api.example.test/resource",
+		"--requested-token-type", expectedRequestedTokenType,
+		"--scope", "openid profile",
+	)
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d\nstderr:\n%s\nstdout:\n%s", result.ExitCode, result.Stderr, result.Stdout)
+	}
+
+	discoveryRequests, discoveryTokenRequests := discoveryProvider.requests()
+	assertEqual(t, discoveryRequests, 1, "discovery request count")
+	assertEqual(t, len(discoveryTokenRequests), 0, "token requests to discovered endpoint")
+
+	_, overrideTokenRequests := overrideProvider.requests()
+	assertEqual(t, len(overrideTokenRequests), 1, "token requests to --token-url")
+}
