@@ -43,9 +43,8 @@ Run `oidc-cli <command> --help` to get help for a specific command
  scoop install oidc-cli
 ```
 
-* Installing with go get
+* Installing with go install
 ```bash
-# NOTE: The dev version will be in effect!
 go install github.com/jentz/oidc-cli@latest
 ```
 
@@ -54,13 +53,19 @@ You can also download a suitable release for your platform from the [releases pa
 ## Run ▶️
 
 ```bash
-go run ./ authorization_code --authorization-url <authorization-url> --token-url <token-url> --client-id <client-id> --client-secret <client-secret> --scope "openid profile"
+go run ./ authorization_code --issuer <issuer> --client-id <client-id> --client-secret <client-secret> --scope "openid profile"
 ```
 
 ## Test
 
 ```bash
 go test -v ./...
+```
+
+The CLI acceptance tests run the compiled binary and need a build tag:
+
+```bash
+make acceptance
 ```
     
 ## Build
