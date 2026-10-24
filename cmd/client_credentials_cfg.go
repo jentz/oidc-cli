@@ -19,7 +19,7 @@ func parseClientCredentialsFlags(in ParseInput) (runner CommandRunner, output st
 	flags.StringVar(&oidcConf.OIDC.TokenEndpoint, "token-url", "", "override token url")
 	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
 	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required)")
-	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic, client_secret_post, or none)")
 
 	var flowConf oidc.ClientCredentialsFlowConfig
 	flags.StringVar(&flowConf.Scope, "scope", "", "set scope as a space separated list")

@@ -20,12 +20,12 @@ func parseIntrospectFlags(in ParseInput) (runner CommandRunner, output string, e
 	flags.StringVar(&oidcConf.OIDC.IntrospectionEndpoint, "introspection-url", "", "override introspection url")
 	flags.StringVar(&oidcConf.OIDC.ClientID, "client-id", oidcConf.OIDC.ClientID, "set client ID (required)")
 	flags.StringVar(&oidcConf.OIDC.ClientSecret, "client-secret", oidcConf.OIDC.ClientSecret, "set client secret (required unless bearer token is provided)")
-	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic or client_secret_post)")
+	flags.Var(&oidcConf.OIDC.AuthMethod, "auth-method", "auth method to use (client_secret_basic, client_secret_post, or none)")
 
 	var flowConf oidc.IntrospectFlowConfig
 	flags.StringVar(&flowConf.BearerToken, "bearer-token", "", "bearer token for authorization (required unless client secret is provided)")
 	flags.StringVar(&flowConf.Token, "token", "", "token to be introspected or '-' to read token from stdin (required)")
-	flags.StringVar(&flowConf.TokenTypeHint, "token-type", "access_token", "token type hint (e.g. access_token")
+	flags.StringVar(&flowConf.TokenTypeHint, "token-type", "access_token", "token type hint (e.g. access_token or refresh_token)")
 	flags.StringVar(&flowConf.AcceptMediaType, "accept-header", "", "set a custom accept header to request a format (e.g. application/json)")
 	var customArgs CustomArgsFlag
 	flags.Var(&customArgs, "custom", "custom parameters to send in the body of the request, argument can be given multiple times")
