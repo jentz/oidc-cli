@@ -155,15 +155,21 @@ func ecdsaKeyFromJWK(jwk map[string]any) (crypto.PublicKey, error) {
 	default:
 		return nil, fmt.Errorf("unsupported ec curve %q", crv)
 	}
-	x, err := decodeBigInt(jwk, "x")
+	x, err := decodeField(jwk, "x")
 	if err != nil {
 		return nil, err
 	}
-	y, err := decodeBigInt(jwk, "y")
+	y, err := decodeField(jwk, "y")
 	if err != nil {
 		return nil, err
 	}
-	return &ecdsa.PublicKey{Curve: curve, X: x, Y: y}, nil
+	// Uncompressed SEC 1 point: 0x04 || X || Y. RFC 7518 requires full-length coordinates.
+	point := append(append([]byte{0x04}, x...), y...)
+	key, err := ecdsa.ParseUncompressedPublicKey(curve, point)
+	if err != nil {
+		return nil, fmt.Errorf("parsing ec public key: %w", err)
+	}
+	return key, nil
 }
 
 func rsaKeyFromJWK(jwk map[string]any) (crypto.PublicKey, error) {
